@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getServerAuthSession } from "@/lib/auth";
 import { listWidgets } from "@/lib/widgets/registry";
 import { registerSystemWidgets } from "@/lib/widgets/system";
-import WidgetShell from "./components/WidgetShell";
+import WidgetTile from "./components/WidgetTile";
 
 registerSystemWidgets();
 
@@ -10,6 +10,15 @@ export default async function Home() {
   const session = await getServerAuthSession();
   const widgets = listWidgets();
   const user = session?.user;
+
+  // Fetch data for each widget (simple defaults)
+  const widgetsWithData = await Promise.all(
+    widgets.map(async (w) => {
+      const data = await w.fetchData({} as any, { now: new Date() });
+      const display = w.toDisplay ? w.toDisplay(data as any) : (data as any);
+      return { def: w, display } as const;
+    })
+  );
 
   return (
     <div className="min-h-screen p-6 md:p-10">
@@ -25,29 +34,23 @@ export default async function Home() {
           )}
         </nav>
       </header>
-      <main
-        className="grid auto-rows-[64px] grid-cols-2 sm:grid-cols-6 lg:grid-cols-8 gap-4 md:gap-6"
-      >
-        {widgets.map((w) => (
-          <WidgetShell
-            key={w.meta.id}
-            title={w.meta.name}
-            subtitle={w.meta.provider}
-            size={w.meta.size as any}
-          >
-            <Preview meta={{ name: w.meta.name, desc: w.meta.description }} />
-          </WidgetShell>
+      <main className="widget-grid grid grid-flow-dense content-start items-start">
+        {widgetsWithData.map(({ def, display }) => (
+          <WidgetTile
+            key={def.meta.id}
+            id={def.meta.id}
+            title={def.meta.name}
+            subtitle={def.meta.provider}
+            size={def.meta.size as any}
+            initial={display}
+          />
         ))}
       </main>
     </div>
   );
 }
 
-function Preview({
-  meta,
-}: {
-  meta: { name: string; desc?: string };
-}) {
+function Preview({ meta }: { meta: { name: string; desc?: string } }) {
   return (
     <div className="flex flex-col items-center justify-center text-center">
       <div className="text-3xl font-semibold tracking-tight drop-shadow-[0_1px_0_rgba(255,255,255,.4)]">
