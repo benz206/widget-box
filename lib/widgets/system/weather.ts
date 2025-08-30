@@ -21,8 +21,8 @@ export const weatherWidget: WidgetDefinition<WeatherCfg, WeatherData> = {
     description: "Shows current temperature",
     refreshIntervalSeconds: 900,
   },
-  async fetchData(config) {
-    // Placeholder deterministic fake data for demo
+  async fetchData(config: WeatherCfg) {
+    // Replace later with actual weather data
     const cities = [
       { city: config.city || "San Francisco", tempC: 20, condition: "Sunny" },
       { city: "New York", tempC: 18, condition: "Cloudy" },
