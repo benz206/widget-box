@@ -34,7 +34,6 @@ export function WidgetShell({
         ].join(" ")}
       >
         <div className="pointer-events-none absolute inset-0">
-          {/* subtle inner highlight and gradient tint */}
           <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-white/40 via-white/10 to-transparent mix-blend-overlay" />
           <div className="absolute -top-1/2 -left-1/3 h-[200%] w-[200%] bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.35),transparent_40%)]" />
         </div>

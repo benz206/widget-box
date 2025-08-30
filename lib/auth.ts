@@ -34,7 +34,6 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async session({ token, session }) {
       if (token && session.user) {
-        // @ts-expect-error augment at runtime
         session.user.id = token.sub as string;
       }
       return session;
