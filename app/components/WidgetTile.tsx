@@ -24,6 +24,7 @@ export default function WidgetTile({
   const [data, setData] = useState<any>(initial);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const cfgString = useMemo(
     () => encodeURIComponent(JSON.stringify(cfg)),
@@ -33,13 +34,22 @@ export default function WidgetTile({
   useEffect(() => {
     let active = true;
     const load = async () => {
+      setIsLoading(true);
       try {
         const res = await fetch(`/api/widgets/data?id=${id}&cfg=${cfgString}`, {
           cache: "no-store",
         });
         const json = await res.json();
-        if (active && json?.display !== undefined) setData(json.display);
-      } catch {}
+        if (active && json?.display !== undefined) {
+          setData(json.display);
+        }
+      } catch (error) {
+        console.error("Failed to load widget data:", error);
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
     };
     load();
     return () => {
@@ -61,7 +71,13 @@ export default function WidgetTile({
   return (
     <div onContextMenu={onContextMenu} className="relative">
       <WidgetShell title={title} subtitle={subtitle} size={size}>
-        <WidgetBody id={id} data={data} />
+        {isLoading ? (
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60"></div>
+          </div>
+        ) : (
+          <WidgetBody id={id} data={data} />
+        )}
       </WidgetShell>
       {menuOpen && menuPos && (
         <ContextMenu
@@ -81,25 +97,32 @@ function WidgetBody({ id, data }: { id: string; data: any }) {
     case "system.time.simple": {
       const d = data as { display: string };
       return (
-        <div className="text-5xl md:text-6xl font-semibold tracking-tight">
-          {d.display}
+        <div className="text-center">
+          <div className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-2">
+            {d.display}
+          </div>
+          <div className="text-xs text-white/60 font-medium">Local Time</div>
         </div>
       );
     }
     case "system.weather.simple": {
       const d = data as { city: string; tempC: number; condition: string };
       return (
-        <div className="flex flex-col items-center justify-center text-center gap-1">
-          <div className="text-4xl md:text-5xl font-semibold">
+        <div className="flex flex-col items-center justify-center text-center space-y-2">
+          <div className="text-3xl md:text-4xl font-bold text-white">
             {Math.round(d.tempC)}°
           </div>
-          <div className="text-xs opacity-80">{d.condition}</div>
-          <div className="text-[10px] opacity-60">{d.city}</div>
+          <div className="text-sm text-white/80 font-medium">{d.condition}</div>
+          <div className="text-xs text-white/60">{d.city}</div>
         </div>
       );
     }
     default:
-      return <div className="text-sm opacity-80">Unknown</div>;
+      return (
+        <div className="text-center">
+          <div className="text-sm text-white/60">Unknown Widget</div>
+        </div>
+      );
   }
 }
 
@@ -124,38 +147,60 @@ function ContextMenu({
 
   return (
     <div
-      className="fixed z-50 min-w-56 rounded-xl border border-white/20 bg-white/20 backdrop-blur-xl shadow-xl p-3 text-sm"
-      style={{ left: pos.x + 6, top: pos.y + 6 }}
+      className="fixed z-50 min-w-64 rounded-xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl p-4 text-sm animate-in fade-in"
+      style={{
+        left: Math.min(pos.x + 8, window.innerWidth - 280),
+        top: Math.min(pos.y + 8, window.innerHeight - 200),
+      }}
     >
       {id === "system.time.simple" && (
-        <div className="space-y-3">
-          <div className="font-semibold">Clock options</div>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={Boolean(cfg.hour12)}
-              onChange={(e) => setCfg({ ...cfg, hour12: e.target.checked })}
-            />
-            12‑hour format
-          </label>
-          <div className="flex items-center gap-2">
-            <span>Timezone:</span>
-            <input
-              className="px-2 py-1 rounded bg-white/30"
-              placeholder="e.g. America/Toronto"
-              value={cfg.timezone ?? ""}
-              onChange={(e) => setCfg({ ...cfg, timezone: e.target.value })}
-            />
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <div className="h-2 w-2 rounded-full bg-blue-400"></div>
+            <h3 className="font-semibold text-white">Clock Settings</h3>
+          </div>
+
+          <div className="space-y-3">
+            <label className="flex items-center space-x-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={Boolean(cfg.hour12)}
+                onChange={(e) => setCfg({ ...cfg, hour12: e.target.checked })}
+                className="w-4 h-4 rounded border-2 border-white/30 bg-transparent text-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-transparent"
+              />
+              <span className="text-sm font-medium text-white/80 group-hover:text-white transition-colors">
+                12-hour format
+              </span>
+            </label>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
+                Timezone
+              </label>
+              <input
+                className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                placeholder="e.g. America/Toronto"
+                value={cfg.timezone ?? ""}
+                onChange={(e) => setCfg({ ...cfg, timezone: e.target.value })}
+              />
+            </div>
           </div>
         </div>
       )}
+
       {id === "system.weather.simple" && (
-        <div className="space-y-3">
-          <div className="font-semibold">Weather options</div>
-          <div className="flex items-center gap-2">
-            <span>City:</span>
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <div className="h-2 w-2 rounded-full bg-orange-400"></div>
+            <h3 className="font-semibold text-white">Weather Settings</h3>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
+              City
+            </label>
             <input
-              className="px-2 py-1 rounded bg-white/30"
+              className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
               placeholder="e.g. Waterloo"
               value={cfg.city ?? ""}
               onChange={(e) => setCfg({ ...cfg, city: e.target.value })}
