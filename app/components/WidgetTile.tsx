@@ -15,6 +15,8 @@ type Props = {
   isResizable?: boolean;
   onPositionChange?: (x: number, y: number) => void;
   onSizeChange?: (size: WidgetSize) => void;
+  onDropPreview?: (x: number, y: number) => void;
+  onDragEnd?: () => void;
 };
 
 type ClockCfg = { timezone?: string; hour12?: boolean };
@@ -31,6 +33,8 @@ export default function WidgetTile({
   isResizable = false,
   onPositionChange,
   onSizeChange,
+  onDropPreview,
+  onDragEnd,
 }: Props) {
   const [cfg, setCfg] = useState<Record<string, any>>({});
   const [data, setData] = useState<any>(initial);
@@ -81,25 +85,26 @@ export default function WidgetTile({
   }
 
   return (
-    <div onContextMenu={onContextMenu} className="relative">
-      <WidgetShell
-        title={title}
-        subtitle={subtitle}
-        size={size}
-        position={position}
-        onPositionChange={onPositionChange}
-        onSizeChange={onSizeChange}
-        isDraggable={isDraggable}
-        isResizable={isResizable}
-      >
-        {isLoading ? (
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60"></div>
-          </div>
-        ) : (
-          <WidgetBody id={id} data={data} />
-        )}
-      </WidgetShell>
+    <WidgetShell
+      title={title}
+      subtitle={subtitle}
+      size={size}
+      position={position}
+      onPositionChange={onPositionChange}
+      onSizeChange={onSizeChange}
+      isDraggable={isDraggable}
+      isResizable={isResizable}
+      onDropPreview={onDropPreview}
+      onDragEnd={onDragEnd}
+      onContextMenu={onContextMenu}
+    >
+      {isLoading ? (
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60"></div>
+        </div>
+      ) : (
+        <WidgetBody id={id} data={data} />
+      )}
       {menuOpen && menuPos && (
         <ContextMenu
           id={id}
@@ -109,7 +114,7 @@ export default function WidgetTile({
           onClose={closeMenu}
         />
       )}
-    </div>
+    </WidgetShell>
   );
 }
 

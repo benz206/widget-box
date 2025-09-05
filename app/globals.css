@@ -62,15 +62,20 @@ body::before {
   grid-template-columns: repeat(5, 1fr);
   grid-template-rows: repeat(5, 1fr);
   gap: 1rem;
-  min-height: 500px;
+  height: 80vh;
   max-width: 800px;
   margin: 0 auto;
+}
+
+.widget-grid > * {
+  min-height: 0; /* Allow grid items to shrink */
+  height: 100%; /* Fill the grid cell */
 }
 
 @media (min-width: 768px) {
   .widget-grid {
     gap: 1.5rem;
-    min-height: 600px;
+    height: 85vh;
     max-width: 1000px;
   }
 }
@@ -78,7 +83,7 @@ body::before {
 @media (min-width: 1024px) {
   .widget-grid {
     gap: 2rem;
-    min-height: 700px;
+    height: 90vh;
     max-width: 1200px;
   }
 }
@@ -161,4 +166,48 @@ html {
 
 .fade-in {
   animation: fade-in 0.3s ease-out;
+}
+
+/* Drag and drop styles */
+.widget-dragging {
+  opacity: 0.98;
+  transform: scale(1.005);
+  z-index: 1000;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  transition: transform 0s linear, box-shadow 0s linear; /* Disable expensive transitions */
+  will-change: transform;
+}
+
+.drop-preview {
+  background: rgba(59, 130, 246, 0.15);
+  border: 2px dashed rgba(59, 130, 246, 0.8);
+  border-radius: 1rem;
+  position: relative;
+  z-index: 10;
+  min-height: 0;
+  height: 100%;
+  pointer-events: none;
+}
+
+.drop-preview::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(59, 130, 246, 0.1) 50%,
+    transparent 70%
+  );
+  border-radius: inherit;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
