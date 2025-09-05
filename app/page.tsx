@@ -1,4 +1,6 @@
+"use client";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { getServerAuthSession } from "@/lib/auth";
 import { listWidgets } from "@/lib/widgets/registry";
 import { registerSystemWidgets } from "@/lib/widgets/system";
@@ -6,19 +8,87 @@ import WidgetTile from "./components/WidgetTile";
 
 registerSystemWidgets();
 
-export default async function Home() {
-  const session = await getServerAuthSession();
-  const widgets = listWidgets();
-  const user = session?.user;
+export default function Home() {
+  const [session, setSession] = useState<any>(null);
+  const [widgets, setWidgets] = useState<any[]>([]);
+  const [widgetsWithData, setWidgetsWithData] = useState<any[]>([]);
+  const [widgetPositions, setWidgetPositions] = useState<
+    Record<string, { x: number; y: number; w: number; h: number }>
+  >({});
+  const [dropPreview, setDropPreview] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
-  // Fetch data for each widget (simple defaults)
-  const widgetsWithData = await Promise.all(
-    widgets.map(async (w) => {
-      const data = await w.fetchData({} as any, { now: new Date() });
-      const display = w.toDisplay ? w.toDisplay(data as any) : (data as any);
-      return { def: w, display } as const;
-    })
-  );
+  useEffect(() => {
+    // Load session and widgets on client side
+    const loadData = async () => {
+      try {
+        const sessionRes = await fetch("/api/auth/session");
+        const sessionData = await sessionRes.json();
+        setSession(sessionData);
+
+        const widgetsList = listWidgets();
+        setWidgets(widgetsList);
+
+        // Fetch data for each widget (simple defaults)
+        const widgetsWithData = await Promise.all(
+          widgetsList.map(async (w) => {
+            const data = await w.fetchData({} as any, { now: new Date() });
+            const display = w.toDisplay
+              ? w.toDisplay(data as any)
+              : (data as any);
+            return { def: w, display } as const;
+          })
+        );
+        setWidgetsWithData(widgetsWithData);
+
+        // Initialize positions
+        const initialPositions: Record<
+          string,
+          { x: number; y: number; w: number; h: number }
+        > = {};
+        widgetsList.forEach((w, index) => {
+          initialPositions[w.meta.id] = {
+            x: index % 5,
+            y: Math.floor(index / 5),
+            w: 1,
+            h: 1,
+          };
+        });
+        setWidgetPositions(initialPositions);
+      } catch (error) {
+        console.error("Failed to load data:", error);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const handlePositionChange = (
+    widgetId: string,
+    newX: number,
+    newY: number
+  ) => {
+    setWidgetPositions((prev) => ({
+      ...prev,
+      [widgetId]: {
+        ...prev[widgetId],
+        x: newX,
+        y: newY,
+      },
+    }));
+  };
+
+  const handleDropPreview = (x: number, y: number) => {
+    setDropPreview({ x, y });
+  };
+
+  const clearDropPreview = () => {
+    setDropPreview(null);
+  };
+
+  const user = session?.user;
 
   return (
     <div className="min-h-screen">
@@ -74,28 +144,41 @@ export default async function Home() {
 
         {widgetsWithData.length > 0 ? (
           <div className="widget-grid">
-            {widgetsWithData.map(({ def, display }, index) => (
+            {/* Render drop preview */}
+            {dropPreview && (
               <div
+                className="drop-preview"
+                style={{
+                  gridColumn: `${dropPreview.x + 1} / span 1`,
+                  gridRow: `${dropPreview.y + 1} / span 1`,
+                }}
+              />
+            )}
+
+            {widgetsWithData.map(({ def, display }, index) => (
+              <WidgetTile
                 key={def.meta.id}
-                className="animate-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <WidgetTile
-                  id={def.meta.id}
-                  title={def.meta.name}
-                  subtitle={def.meta.provider}
-                  size={def.meta.size as any}
-                  initial={display}
-                  position={{
+                id={def.meta.id}
+                title={def.meta.name}
+                subtitle={def.meta.provider}
+                size={def.meta.size as any}
+                initial={display}
+                position={
+                  widgetPositions[def.meta.id] || {
                     x: index % 5,
                     y: Math.floor(index / 5),
                     w: 1,
                     h: 1,
-                  }}
-                  isDraggable={true}
-                  isResizable={true}
-                />
-              </div>
+                  }
+                }
+                isDraggable={true}
+                isResizable={true}
+                onPositionChange={(x, y) =>
+                  handlePositionChange(def.meta.id, x, y)
+                }
+                onDropPreview={handleDropPreview}
+                onDragEnd={clearDropPreview}
+              />
             ))}
           </div>
         ) : (

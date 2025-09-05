@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { WidgetSize, WIDGET_SIZES } from "@/lib/widgets/types";
+import { useDragAndDrop } from "@/app/hooks/useDragAndDrop";
 
 type WidgetShellProps = {
   title?: string;
@@ -12,6 +13,9 @@ type WidgetShellProps = {
   onSizeChange?: (size: WidgetSize) => void;
   isDraggable?: boolean;
   isResizable?: boolean;
+  onDropPreview?: (x: number, y: number) => void;
+  onDragEnd?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
 };
 
 // Convert grid dimensions to Tailwind classes for 5x5 grid
@@ -49,11 +53,31 @@ export function WidgetShell({
   onSizeChange,
   isDraggable = false,
   isResizable = false,
+  onDropPreview,
+  onDragEnd,
+  onContextMenu,
 }: WidgetShellProps) {
   const sizeConfig = WIDGET_SIZES[size];
   const w = position?.w ?? sizeConfig.w;
   const h = position?.h ?? sizeConfig.h;
   const gridClasses = getGridClasses(w, h);
+
+  const { handleMouseDown, isDragging } = useDragAndDrop({
+    onDragEnd: (element, newX, newY) => {
+      if (onPositionChange) {
+        onPositionChange(newX, newY);
+      }
+      onDragEnd?.();
+    },
+    onDropPreview: onDropPreview,
+    snapToGrid: true,
+    currentPosition: position
+      ? { x: position.x, y: position.y }
+      : { x: 0, y: 0 },
+    gridSelector: ".widget-grid",
+    gridDimensions: { cols: 5, rows: 5 },
+    itemSpan: { w, h },
+  });
 
   return (
     <div
@@ -62,20 +86,35 @@ export function WidgetShell({
         gridClasses,
         isDraggable && "cursor-move",
         "transition-all duration-200",
+        isDragging && "z-50",
+        "h-full w-full min-h-0", // Ensure full size and allow shrinking
       ]
         .filter(Boolean)
         .join(" ")}
       style={{
         gridColumn: position ? `${position.x + 1} / span ${w}` : undefined,
         gridRow: position ? `${position.y + 1} / span ${h}` : undefined,
+        minHeight: 0, // Allow grid item to shrink
       }}
+      onMouseDown={isDraggable ? handleMouseDown : undefined}
+      onPointerDown={(e) => {
+        try {
+          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        } catch {}
+      }}
+      onContextMenu={onContextMenu}
     >
       <section
         className={[
           "group relative overflow-hidden rounded-2xl h-full w-full",
           "bg-white/5 backdrop-blur-xl border border-white/10",
-          "shadow-xl shadow-black/20 hover:shadow-2xl hover:shadow-black/30",
-          "hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300",
+          // Reduce expensive hover transitions while dragging for smoother perf
+          isDragging
+            ? "shadow-xl shadow-black/20"
+            : "shadow-xl shadow-black/20 hover:shadow-2xl hover:shadow-black/30",
+          isDragging
+            ? ""
+            : "hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300",
           "p-4 flex flex-col",
           isDraggable && "select-none",
         ]
