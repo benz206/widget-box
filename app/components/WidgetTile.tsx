@@ -2,12 +2,19 @@
 import { useMemo, useState, useEffect } from "react";
 import WidgetShell from "./WidgetShell";
 
+import { WidgetSize } from "@/lib/widgets/types";
+
 type Props = {
   id: string;
   title: string;
   subtitle?: string;
-  size: "small" | "medium" | "large" | "wide" | "tall";
+  size: WidgetSize;
   initial: any;
+  position?: { x: number; y: number; w: number; h: number };
+  isDraggable?: boolean;
+  isResizable?: boolean;
+  onPositionChange?: (x: number, y: number) => void;
+  onSizeChange?: (size: WidgetSize) => void;
 };
 
 type ClockCfg = { timezone?: string; hour12?: boolean };
@@ -19,6 +26,11 @@ export default function WidgetTile({
   subtitle,
   size,
   initial,
+  position,
+  isDraggable = false,
+  isResizable = false,
+  onPositionChange,
+  onSizeChange,
 }: Props) {
   const [cfg, setCfg] = useState<Record<string, any>>({});
   const [data, setData] = useState<any>(initial);
@@ -70,7 +82,16 @@ export default function WidgetTile({
 
   return (
     <div onContextMenu={onContextMenu} className="relative">
-      <WidgetShell title={title} subtitle={subtitle} size={size}>
+      <WidgetShell
+        title={title}
+        subtitle={subtitle}
+        size={size}
+        position={position}
+        onPositionChange={onPositionChange}
+        onSizeChange={onSizeChange}
+        isDraggable={isDraggable}
+        isResizable={isResizable}
+      >
         {isLoading ? (
           <div className="flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60"></div>

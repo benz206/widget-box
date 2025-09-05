@@ -71,8 +71,11 @@ model Widget {
     description  String?
     provider     String // organization or source (e.g., "system", "community")
     creator      String? // display attribution/name
-    // sizing model: small, medium, large, wide, tall, or custom
+    // sizing model: small (1x1), medium (2x2), large (3x2)
     size         String
+    // default width and height in grid cells
+    defaultWidth Int     @default(1)
+    defaultHeight Int    @default(1)
     // optional JSON schema for config options
     configSchema Json?
     // optional script or URL pointer for custom layout sizing logic
@@ -92,11 +95,12 @@ model UserWidget {
     id                     String    @id @default(cuid())
     userId                 String
     widgetId               String
-    // position on grid and size overrides
+    // position on 5x5 grid (0-4 for x, 0-4 for y)
     x                      Int       @default(0)
     y                      Int       @default(0)
-    w                      Int?
-    h                      Int?
+    // size in grid cells (1-5 for width, 1-5 for height)
+    w                      Int       @default(1)
+    h                      Int       @default(1)
     // per-user configuration as JSON
     config                 Json?
     // last fetched data snapshot
@@ -105,6 +109,8 @@ model UserWidget {
     dataUpdatedAt          DateTime?
     // per-instance refresh interval override
     refreshIntervalSeconds Int?
+    // z-index for layering (higher = on top)
+    zIndex                 Int       @default(0)
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -114,4 +120,5 @@ model UserWidget {
 
     @@index([userId])
     @@index([widgetId])
+    @@unique([userId, x, y]) // Prevent overlapping widgets
 }
