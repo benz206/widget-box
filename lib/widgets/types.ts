@@ -28,6 +28,25 @@ export type WidgetInstanceConfig = Record<string, unknown>;
 
 export type WidgetData = unknown;
 
+// Widget position and size on the grid
+export type WidgetPosition = {
+  x: number; // column position (0-4)
+  y: number; // row position (0-4)
+  w: number; // width in grid cells (1-5)
+  h: number; // height in grid cells (1-5)
+};
+
+// User's widget instance configuration
+export type UserWidgetConfig = {
+  id: string;
+  widgetId: string;
+  position: WidgetPosition;
+  config: WidgetInstanceConfig;
+  data?: WidgetData;
+  dataUpdatedAt?: Date;
+  refreshIntervalSeconds?: number;
+};
+
 export interface WidgetDefinition<Cfg extends WidgetInstanceConfig = WidgetInstanceConfig, Data = WidgetData> {
   meta: WidgetMetadata;
   // fetch data for rendering

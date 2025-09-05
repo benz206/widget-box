@@ -73,7 +73,7 @@ export default async function Home() {
         </div>
 
         {widgetsWithData.length > 0 ? (
-          <div className="widget-grid grid grid-flow-dense content-start items-start">
+          <div className="widget-grid">
             {widgetsWithData.map(({ def, display }, index) => (
               <div
                 key={def.meta.id}
@@ -86,6 +86,14 @@ export default async function Home() {
                   subtitle={def.meta.provider}
                   size={def.meta.size as any}
                   initial={display}
+                  position={{
+                    x: index % 5,
+                    y: Math.floor(index / 5),
+                    w: 1,
+                    h: 1,
+                  }}
+                  isDraggable={true}
+                  isResizable={true}
                 />
               </div>
             ))}
