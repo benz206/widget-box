@@ -21,30 +21,91 @@ export default async function Home() {
   );
 
   return (
-    <div className="min-h-screen p-6 md:p-10">
-      <header className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">widget-box</h1>
-        <nav className="flex gap-3 text-sm">
-          {user ? (
-            <span className="text-white/90">{user.email}</span>
-          ) : (
-            <Link href="/login" className="underline">
-              Sign in
-            </Link>
-          )}
-        </nav>
+    <div className="min-h-screen">
+      {/* Modern sticky header */}
+      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur-xl supports-[backdrop-filter]:bg-black/60">
+        <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-sm">W</span>
+              </div>
+              <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                widget-box
+              </h1>
+            </div>
+          </div>
+
+          <nav className="flex items-center space-x-4">
+            {user ? (
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+                  <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
+                  <span className="text-sm font-medium text-white/90">
+                    {user.email}
+                  </span>
+                </div>
+                <button className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200">
+                  Settings
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center rounded-lg bg-white text-black px-4 py-2 text-sm font-semibold shadow-lg hover:bg-white/90 transition-all duration-200 hover:shadow-xl"
+              >
+                Sign in
+              </Link>
+            )}
+          </nav>
+        </div>
       </header>
-      <main className="widget-grid grid grid-flow-dense content-start items-start">
-        {widgetsWithData.map(({ def, display }) => (
-          <WidgetTile
-            key={def.meta.id}
-            id={def.meta.id}
-            title={def.meta.name}
-            subtitle={def.meta.provider}
-            size={def.meta.size as any}
-            initial={display}
-          />
-        ))}
+
+      {/* Main content */}
+      <main className="container mx-auto max-w-7xl px-6 py-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold tracking-tight text-white mb-2">
+            Your Dashboard
+          </h2>
+          <p className="text-white/60 text-lg">
+            Manage your widgets and customize your workspace
+          </p>
+        </div>
+
+        {widgetsWithData.length > 0 ? (
+          <div className="widget-grid grid grid-flow-dense content-start items-start">
+            {widgetsWithData.map(({ def, display }, index) => (
+              <div
+                key={def.meta.id}
+                className="animate-in"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <WidgetTile
+                  id={def.meta.id}
+                  title={def.meta.name}
+                  subtitle={def.meta.provider}
+                  size={def.meta.size as any}
+                  initial={display}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 text-center animate-in">
+            <div className="h-20 w-20 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center mb-6 animate-scale-in">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <span className="text-white font-bold text-lg">W</span>
+              </div>
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-3">
+              No widgets available
+            </h3>
+            <p className="text-white/60 max-w-md text-center">
+              It looks like there are no widgets configured yet. Check back
+              later or contact your administrator.
+            </p>
+          </div>
+        )}
       </main>
     </div>
   );
