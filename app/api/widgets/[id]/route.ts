@@ -6,13 +6,15 @@ import { WIDGET_SIZES } from "@/lib/widgets/types";
 // GET /api/widgets/[id] - Get user's widget instances
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const userWidgets = await prisma.userWidget.findMany({
       where: { userId: session.user.id },
@@ -33,7 +35,7 @@ export async function GET(
 // PUT /api/widgets/[id] - Update widget position or config
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerAuthSession();
@@ -45,9 +47,11 @@ export async function PUT(
     const { x, y, w, h, config, size } = body;
 
     // Check if widget exists and belongs to user
+    const { id } = await params;
+
     const existingWidget = await prisma.userWidget.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
       },
     });
@@ -104,7 +108,7 @@ export async function PUT(
       const overlapping = await prisma.userWidget.findFirst({
         where: {
           userId: session.user.id,
-          id: { not: params.id },
+          id: { not: id },
           OR: [
             {
               AND: [
@@ -127,7 +131,7 @@ export async function PUT(
     }
 
     const updatedWidget = await prisma.userWidget.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: { widget: true },
     });
@@ -145,7 +149,7 @@ export async function PUT(
 // DELETE /api/widgets/[id] - Delete widget instance
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerAuthSession();
@@ -153,10 +157,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     // Check if widget exists and belongs to user
     const existingWidget = await prisma.userWidget.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
       },
     });
@@ -166,7 +172,7 @@ export async function DELETE(
     }
 
     await prisma.userWidget.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });
