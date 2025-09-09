@@ -57,18 +57,21 @@ export function useDragAndDrop(options: UseDragAndDropOptions = {}) {
   const currentVisualRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
   const targetVisualRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
   const runningRef = useRef<boolean>(false);
-  const smoothingRef = useRef<number>(0.25);
+  const smoothingRef = useRef<number>(1);
   const lastPreviewRef = useRef<{ x: number; y: number } | null>(null);
+  const draggedElementRef = useRef<HTMLElement | null>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return; // left click only
     e.preventDefault();
     const element = e.currentTarget as HTMLElement;
+    draggedElementRef.current = element;
     
     // Add visual feedback
     element.style.cursor = 'grabbing';
     element.style.userSelect = 'none';
     element.style.willChange = 'transform';
+    element.style.transition = 'none';
     element.classList.add('widget-dragging');
 
     // Measure grid once at drag start
@@ -96,9 +99,13 @@ export function useDragAndDrop(options: UseDragAndDropOptions = {}) {
       draggedElement: element,
     });
 
+    // Reset visual state at drag start
+    currentVisualRef.current = { dx: 0, dy: 0 };
+    targetVisualRef.current = { dx: 0, dy: 0 };
+
     onDragStart?.(element);
-    // Start animation loop once
-    if (!runningRef.current) {
+    // Start animation loop only if smoothing < 1 (interpolation desired)
+    if (!runningRef.current && smoothingRef.current < 1) {
       runningRef.current = true;
       const animate = () => {
         if (!runningRef.current) {
@@ -110,14 +117,15 @@ export function useDragAndDrop(options: UseDragAndDropOptions = {}) {
         const s = smoothingRef.current;
         cur.dx += (tar.dx - cur.dx) * s;
         cur.dy += (tar.dy - cur.dy) * s;
-        if (dragState.draggedElement) {
-          dragState.draggedElement.style.transform = `translate3d(${cur.dx}px, ${cur.dy}px, 0)`;
+        const el = draggedElementRef.current;
+        if (el) {
+          el.style.transform = `translate3d(${cur.dx}px, ${cur.dy}px, 0)`;
         }
         animRafRef.current = requestAnimationFrame(animate);
       };
       animRafRef.current = requestAnimationFrame(animate);
     }
-  }, [onDragStart, gridSelector, gridDimensions.cols, gridDimensions.rows, dragState.draggedElement]);
+  }, [onDragStart, gridSelector, gridDimensions.cols, gridDimensions.rows]);
 
   const handleMouseMove = useCallback((e: PointerEvent) => {
     if (!dragState.isDragging || !dragState.draggedElement) return;
@@ -125,24 +133,35 @@ export function useDragAndDrop(options: UseDragAndDropOptions = {}) {
     const deltaX = e.clientX - dragState.startX;
     const deltaY = e.clientY - dragState.startY;
 
-    // Update target for smoothing; animation loop will lerp to it
-    targetVisualRef.current = { dx: deltaX, dy: deltaY };
-
     // Calculate grid position using cached grid metrics
     const metrics = gridMetricsRef.current;
     const cols = metrics?.cols ?? gridDimensions.cols;
     const rows = metrics?.rows ?? gridDimensions.rows;
     const cellWidth = metrics?.cellWidth ?? 160;
     const cellHeight = metrics?.cellHeight ?? 160;
+    const colGap = metrics?.colGap ?? 0;
+    const rowGap = metrics?.rowGap ?? 0;
+    const stepX = cellWidth + colGap;
+    const stepY = cellHeight + rowGap;
 
-    const deltaXGrid = Math.round(deltaX / cellWidth);
-    const deltaYGrid = Math.round(deltaY / cellHeight);
+    const deltaXGrid = Math.round(deltaX / stepX);
+    const deltaYGrid = Math.round(deltaY / stepY);
     const unclampedX = currentPosition.x + deltaXGrid;
     const unclampedY = currentPosition.y + deltaYGrid;
     const maxX = Math.max(0, cols - itemSpan.w);
     const maxY = Math.max(0, rows - itemSpan.h);
     const newX = Math.max(0, Math.min(maxX, unclampedX));
     const newY = Math.max(0, Math.min(maxY, unclampedY));
+    
+    // Visually follow the cursor exactly during drag
+    const visualDx = deltaX;
+    const visualDy = deltaY;
+    targetVisualRef.current = { dx: visualDx, dy: visualDy };
+    const el = draggedElementRef.current;
+    if (el) {
+      // Apply immediate transform for zero-lag tracking (no RAF reliance)
+      el.style.transform = `translate3d(${visualDx}px, ${visualDy}px, 0)`;
+    }
     
     if (snapToGrid) {
       const prev = lastPreviewRef.current;
@@ -153,7 +172,7 @@ export function useDragAndDrop(options: UseDragAndDropOptions = {}) {
     }
 
     onDragMove?.(dragState.draggedElement, deltaX, deltaY);
-  }, [dragState.isDragging, dragState.draggedElement, dragState.startX, dragState.startY, snapToGrid, onDragMove, onDropPreview, currentPosition, gridDimensions, itemSpan]);
+  }, [dragState.isDragging, dragState.draggedElement, dragState.startX, dragState.startY, snapToGrid, onDragMove, onDropPreview, currentPosition.x, currentPosition.y, gridDimensions, itemSpan]);
 
   const handleMouseUp = useCallback((e: PointerEvent) => {
     if (!dragState.isDragging || !dragState.draggedElement) return;
@@ -169,13 +188,18 @@ export function useDragAndDrop(options: UseDragAndDropOptions = {}) {
     runningRef.current = false;
 
     // Reset visual transform and styles
-    dragState.draggedElement.style.transform = '';
-    dragState.draggedElement.style.zIndex = '';
-    dragState.draggedElement.style.cursor = '';
-    dragState.draggedElement.style.userSelect = '';
-    dragState.draggedElement.classList.remove('widget-dragging');
+    const el = draggedElementRef.current ?? dragState.draggedElement;
+    if (el) {
+      el.style.transform = '';
+      el.style.zIndex = '';
+      el.style.cursor = '';
+      el.style.userSelect = '';
+      el.style.transition = '';
+      el.classList.remove('widget-dragging');
+    }
 
     lastPreviewRef.current = null;
+    draggedElementRef.current = null;
 
     // Calculate grid position using cached grid metrics
     const metrics = gridMetricsRef.current;
@@ -183,9 +207,13 @@ export function useDragAndDrop(options: UseDragAndDropOptions = {}) {
     const rows = metrics?.rows ?? gridDimensions.rows;
     const cellWidth = metrics?.cellWidth ?? 160;
     const cellHeight = metrics?.cellHeight ?? 160;
+    const colGap = metrics?.colGap ?? 0;
+    const rowGap = metrics?.rowGap ?? 0;
+    const stepX = cellWidth + colGap;
+    const stepY = cellHeight + rowGap;
 
-    const deltaXGrid = Math.round(deltaX / cellWidth);
-    const deltaYGrid = Math.round(deltaY / cellHeight);
+    const deltaXGrid = Math.round(deltaX / stepX);
+    const deltaYGrid = Math.round(deltaY / stepY);
     const unclampedX = currentPosition.x + deltaXGrid;
     const unclampedY = currentPosition.y + deltaYGrid;
     const maxX = Math.max(0, cols - itemSpan.w);
