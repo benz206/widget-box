@@ -176,6 +176,7 @@ html {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
   transition: transform 0s linear, box-shadow 0s linear; /* Disable expensive transitions */
   will-change: transform;
+  pointer-events: none; /* ensure overlay hover/transition effects don't trigger */
 }
 
 .drop-preview {

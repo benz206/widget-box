@@ -1,10 +1,20 @@
 "use client";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { getServerAuthSession } from "@/lib/auth";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { listWidgets } from "@/lib/widgets/registry";
 import { registerSystemWidgets } from "@/lib/widgets/system";
 import WidgetTile from "./components/WidgetTile";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragMoveEvent,
+  DragEndEvent,
+  useDroppable,
+  pointerWithin,
+} from "@dnd-kit/core";
 
 registerSystemWidgets();
 
@@ -19,6 +29,8 @@ export default function Home() {
     x: number;
     y: number;
   } | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     // Load session and widgets on client side
@@ -65,28 +77,84 @@ export default function Home() {
     loadData();
   }, []);
 
-  const handlePositionChange = (
-    widgetId: string,
-    newX: number,
-    newY: number
-  ) => {
-    setWidgetPositions((prev) => ({
-      ...prev,
-      [widgetId]: {
-        ...prev[widgetId],
-        x: newX,
-        y: newY,
-      },
-    }));
-  };
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  );
 
-  const handleDropPreview = (x: number, y: number) => {
-    setDropPreview({ x, y });
-  };
+  const COLS = 5;
+  const ROWS = 5;
+  const cells = useMemo(() => {
+    const items: { x: number; y: number; id: string }[] = [];
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        items.push({ x, y, id: `cell-${x}-${y}` });
+      }
+    }
+    return items;
+  }, []);
 
-  const clearDropPreview = () => {
-    setDropPreview(null);
-  };
+  const onDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const id = String(event.active.id);
+      setActiveId(id);
+      const pos = widgetPositions[id] || { x: 0, y: 0 };
+      setDropPreview({ x: pos.x, y: pos.y });
+    },
+    [widgetPositions]
+  );
+
+  const onDragMove = useCallback(
+    (event: DragMoveEvent) => {
+      if (!event.over) return;
+      const overId = String(event.over.id);
+      if (overId.startsWith("cell-")) {
+        const [, xs, ys] = overId.split("-");
+        let x = parseInt(xs, 10);
+        let y = parseInt(ys, 10);
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+          const span =
+            activeId && widgetPositions[activeId]
+              ? {
+                  w: widgetPositions[activeId].w ?? 1,
+                  h: widgetPositions[activeId].h ?? 1,
+                }
+              : { w: 1, h: 1 };
+          const cols = 5;
+          const rows = 5;
+          x = Math.max(0, Math.min(x, cols - span.w));
+          y = Math.max(0, Math.min(y, rows - span.h));
+          setDropPreview({ x, y });
+        }
+      }
+    },
+    [activeId, widgetPositions]
+  );
+
+  const onDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const id = String(event.active.id);
+      if (dropPreview) {
+        const span = widgetPositions[id]
+          ? { w: widgetPositions[id].w ?? 1, h: widgetPositions[id].h ?? 1 }
+          : { w: 1, h: 1 };
+        const cols = 5;
+        const rows = 5;
+        const clampedX = Math.max(0, Math.min(dropPreview.x, cols - span.w));
+        const clampedY = Math.max(0, Math.min(dropPreview.y, rows - span.h));
+        setWidgetPositions((prev) => ({
+          ...prev,
+          [id]: {
+            ...(prev[id] ?? { w: 1, h: 1 }),
+            x: clampedX,
+            y: clampedY,
+          },
+        }));
+      }
+      setDropPreview(null);
+      setActiveId(null);
+    },
+    [dropPreview, widgetPositions]
+  );
 
   const user = session?.user;
 
@@ -143,44 +211,55 @@ export default function Home() {
         </div>
 
         {widgetsWithData.length > 0 ? (
-          <div className="widget-grid">
-            {/* Render drop preview */}
-            {dropPreview && (
-              <div
-                className="drop-preview"
-                style={{
-                  gridColumn: `${dropPreview.x + 1} / span 1`,
-                  gridRow: `${dropPreview.y + 1} / span 1`,
-                }}
-              />
-            )}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={pointerWithin}
+            onDragStart={onDragStart}
+            onDragMove={onDragMove}
+            onDragEnd={onDragEnd}
+          >
+            <div className="widget-grid" ref={gridRef}>
+              {/* Droppable cells overlay */}
+              {cells.map((c) => (
+                <DroppableCell key={c.id} id={c.id} x={c.x} y={c.y} />
+              ))}
+              {/* Render drop preview */}
+              {dropPreview && (
+                <div
+                  className="drop-preview"
+                  style={{
+                    gridColumn: `${dropPreview.x + 1} / span ${
+                      (activeId && widgetPositions[activeId]?.w) || 1
+                    }`,
+                    gridRow: `${dropPreview.y + 1} / span ${
+                      (activeId && widgetPositions[activeId]?.h) || 1
+                    }`,
+                  }}
+                />
+              )}
 
-            {widgetsWithData.map(({ def, display }, index) => (
-              <WidgetTile
-                key={def.meta.id}
-                id={def.meta.id}
-                title={def.meta.name}
-                subtitle={def.meta.provider}
-                size={def.meta.size as any}
-                initial={display}
-                position={
-                  widgetPositions[def.meta.id] || {
-                    x: index % 5,
-                    y: Math.floor(index / 5),
-                    w: 1,
-                    h: 1,
+              {widgetsWithData.map(({ def, display }, index) => (
+                <WidgetTile
+                  key={def.meta.id}
+                  id={def.meta.id}
+                  title={def.meta.name}
+                  subtitle={def.meta.provider}
+                  size={def.meta.size as any}
+                  initial={display}
+                  position={
+                    widgetPositions[def.meta.id] || {
+                      x: index % 5,
+                      y: Math.floor(index / 5),
+                      w: 1,
+                      h: 1,
+                    }
                   }
-                }
-                isDraggable={true}
-                isResizable={true}
-                onPositionChange={(x, y) =>
-                  handlePositionChange(def.meta.id, x, y)
-                }
-                onDropPreview={handleDropPreview}
-                onDragEnd={clearDropPreview}
-              />
-            ))}
-          </div>
+                  isDraggable={true}
+                  isResizable={true}
+                />
+              ))}
+            </div>
+          </DndContext>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-in">
             <div className="h-20 w-20 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center mb-6 animate-scale-in">
@@ -212,5 +291,18 @@ function Preview({ meta }: { meta: { name: string; desc?: string } }) {
         <div className="text-xs mt-1 opacity-80 max-w-[18ch]">{meta.desc}</div>
       )}
     </div>
+  );
+}
+
+function DroppableCell({ id, x, y }: { id: string; x: number; y: number }) {
+  const { setNodeRef } = useDroppable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        gridColumn: `${x + 1} / span 1`,
+        gridRow: `${y + 1} / span 1`,
+      }}
+    />
   );
 }
