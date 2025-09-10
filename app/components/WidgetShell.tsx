@@ -1,20 +1,18 @@
 "use client";
 import React from "react";
 import { WidgetSize, WIDGET_SIZES } from "@/lib/widgets/types";
-import { useDragAndDrop } from "@/app/hooks/useDragAndDrop";
+import { useDraggable } from "@dnd-kit/core";
 
 type WidgetShellProps = {
+  id: string;
   title?: string;
   subtitle?: string;
   size: WidgetSize;
   position?: { x: number; y: number; w: number; h: number };
   children: React.ReactNode;
-  onPositionChange?: (x: number, y: number) => void;
   onSizeChange?: (size: WidgetSize) => void;
   isDraggable?: boolean;
   isResizable?: boolean;
-  onDropPreview?: (x: number, y: number) => void;
-  onDragEnd?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
 };
 
@@ -44,17 +42,15 @@ const getGridClasses = (w: number, h: number) => {
 };
 
 export function WidgetShell({
+  id,
   title,
   subtitle,
   size,
   position,
   children,
-  onPositionChange,
   onSizeChange,
   isDraggable = false,
   isResizable = false,
-  onDropPreview,
-  onDragEnd,
   onContextMenu,
 }: WidgetShellProps) {
   const sizeConfig = WIDGET_SIZES[size];
@@ -62,22 +58,11 @@ export function WidgetShell({
   const h = position?.h ?? sizeConfig.h;
   const gridClasses = getGridClasses(w, h);
 
-  const { handleMouseDown, isDragging } = useDragAndDrop({
-    onDragEnd: (element, newX, newY) => {
-      if (onPositionChange) {
-        onPositionChange(newX, newY);
-      }
-      onDragEnd?.();
-    },
-    onDropPreview: onDropPreview,
-    snapToGrid: true,
-    currentPosition: position
-      ? { x: position.x, y: position.y }
-      : { x: 0, y: 0 },
-    gridSelector: ".widget-grid",
-    gridDimensions: { cols: 5, rows: 5 },
-    itemSpan: { w, h },
-  });
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({ id });
+  const style: React.CSSProperties | undefined = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
+    : undefined;
 
   return (
     <div
@@ -87,7 +72,7 @@ export function WidgetShell({
         isDraggable && "cursor-move",
         "transition-all duration-200",
         isDragging && "z-50",
-        "h-full w-full min-h-0", // Ensure full size and allow shrinking
+        "h-full w-full min-h-0 touch-none", // Ensure full size and allow shrinking and prevent touch-scroll during drag
       ]
         .filter(Boolean)
         .join(" ")}
@@ -95,13 +80,11 @@ export function WidgetShell({
         gridColumn: position ? `${position.x + 1} / span ${w}` : undefined,
         gridRow: position ? `${position.y + 1} / span ${h}` : undefined,
         minHeight: 0, // Allow grid item to shrink
+        ...style,
       }}
-      onMouseDown={isDraggable ? handleMouseDown : undefined}
-      onPointerDown={(e) => {
-        try {
-          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-        } catch {}
-      }}
+      ref={setNodeRef}
+      {...(isDraggable ? listeners : {})}
+      {...(isDraggable ? attributes : {})}
       onContextMenu={onContextMenu}
     >
       <section

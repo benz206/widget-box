@@ -13,10 +13,7 @@ type Props = {
   position?: { x: number; y: number; w: number; h: number };
   isDraggable?: boolean;
   isResizable?: boolean;
-  onPositionChange?: (x: number, y: number) => void;
   onSizeChange?: (size: WidgetSize) => void;
-  onDropPreview?: (x: number, y: number) => void;
-  onDragEnd?: () => void;
 };
 
 type ClockCfg = { timezone?: string; hour12?: boolean };
@@ -31,10 +28,7 @@ export default function WidgetTile({
   position,
   isDraggable = false,
   isResizable = false,
-  onPositionChange,
   onSizeChange,
-  onDropPreview,
-  onDragEnd,
 }: Props) {
   const [cfg, setCfg] = useState<Record<string, any>>({});
   const [data, setData] = useState<any>(initial);
@@ -86,16 +80,14 @@ export default function WidgetTile({
 
   return (
     <WidgetShell
+      id={id}
       title={title}
       subtitle={subtitle}
       size={size}
       position={position}
-      onPositionChange={onPositionChange}
       onSizeChange={onSizeChange}
       isDraggable={isDraggable}
       isResizable={isResizable}
-      onDropPreview={onDropPreview}
-      onDragEnd={onDragEnd}
       onContextMenu={onContextMenu}
     >
       {isLoading ? (
