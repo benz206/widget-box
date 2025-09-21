@@ -212,3 +212,9 @@ html {
     transform: translateX(100%);
   }
 }
+
+/* Invalid drop state */
+.drop-preview--invalid {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.9);
+}

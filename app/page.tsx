@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { listWidgets } from "@/lib/widgets/registry";
 import { registerSystemWidgets } from "@/lib/widgets/system";
 import WidgetTile from "./components/WidgetTile";
+import { WIDGET_SIZES } from "@/lib/widgets/types";
 import {
   DndContext,
   PointerSensor,
@@ -29,6 +30,7 @@ export default function Home() {
     x: number;
     y: number;
   } | null>(null);
+  const [invalidDrop, setInvalidDrop] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
 
@@ -56,16 +58,15 @@ export default function Home() {
         setWidgetsWithData(widgetsWithData);
 
         // Initialize positions
-        const initialPositions: Record<
-          string,
-          { x: number; y: number; w: number; h: number }
-        > = {};
+        const initialPositions: Record<string, { x: number; y: number; w: number; h: number }> = {};
         widgetsList.forEach((w, index) => {
+          const sizeKey = w.meta.size as keyof typeof WIDGET_SIZES;
+          const span = WIDGET_SIZES[sizeKey] ?? { w: 1, h: 1 };
           initialPositions[w.meta.id] = {
             x: index % 5,
             y: Math.floor(index / 5),
-            w: 1,
-            h: 1,
+            w: span.w,
+            h: span.h,
           };
         });
         setWidgetPositions(initialPositions);
@@ -123,6 +124,26 @@ export default function Home() {
           const rows = 5;
           x = Math.max(0, Math.min(x, cols - span.w));
           y = Math.max(0, Math.min(y, rows - span.h));
+          // detect overlap with other widgets
+          let overlaps = false;
+          if (activeId) {
+            const ax1 = x;
+            const ay1 = y;
+            const ax2 = x + span.w;
+            const ay2 = y + span.h;
+            for (const [id, pos] of Object.entries(widgetPositions)) {
+              if (id === activeId) continue;
+              const bx1 = pos.x;
+              const by1 = pos.y;
+              const bx2 = pos.x + (pos.w ?? 1);
+              const by2 = pos.y + (pos.h ?? 1);
+              if (ax1 < bx2 && ax2 > bx1 && ay1 < by2 && ay2 > by1) {
+                overlaps = true;
+                break;
+              }
+            }
+          }
+          setInvalidDrop(overlaps);
           setDropPreview({ x, y });
         }
       }
@@ -133,7 +154,7 @@ export default function Home() {
   const onDragEnd = useCallback(
     (event: DragEndEvent) => {
       const id = String(event.active.id);
-      if (dropPreview) {
+      if (dropPreview && !invalidDrop) {
         const span = widgetPositions[id]
           ? { w: widgetPositions[id].w ?? 1, h: widgetPositions[id].h ?? 1 }
           : { w: 1, h: 1 };
@@ -151,9 +172,10 @@ export default function Home() {
         }));
       }
       setDropPreview(null);
+      setInvalidDrop(false);
       setActiveId(null);
     },
-    [dropPreview, widgetPositions]
+    [dropPreview, invalidDrop, widgetPositions]
   );
 
   const user = session?.user;
@@ -226,7 +248,7 @@ export default function Home() {
               {/* Render drop preview */}
               {dropPreview && (
                 <div
-                  className="drop-preview"
+                  className={["drop-preview", invalidDrop && "drop-preview--invalid"].filter(Boolean).join(" ")}
                   style={{
                     gridColumn: `${dropPreview.x + 1} / span ${
                       (activeId && widgetPositions[activeId]?.w) || 1
@@ -250,12 +272,58 @@ export default function Home() {
                     widgetPositions[def.meta.id] || {
                       x: index % 5,
                       y: Math.floor(index / 5),
-                      w: 1,
-                      h: 1,
+                      w: (WIDGET_SIZES[def.meta.size as keyof typeof WIDGET_SIZES]?.w ?? 1),
+                      h: (WIDGET_SIZES[def.meta.size as keyof typeof WIDGET_SIZES]?.h ?? 1),
                     }
                   }
                   isDraggable={true}
                   isResizable={true}
+                  onSizeChange={(newSize) => {
+                    const span =
+                      WIDGET_SIZES[newSize as keyof typeof WIDGET_SIZES] ??
+                      { w: 1, h: 1 };
+                    setWidgetPositions((prev) => {
+                      const curr = prev[def.meta.id] ?? {
+                        x: index % 5,
+                        y: Math.floor(index / 5),
+                        w: 1,
+                        h: 1,
+                      };
+                      // clamp within bounds
+                      const cols = 5;
+                      const rows = 5;
+                      const clampedX = Math.max(0, Math.min(curr.x, cols - span.w));
+                      const clampedY = Math.max(0, Math.min(curr.y, rows - span.h));
+                      // check overlap; if overlap, skip size change
+                      const ax1 = clampedX;
+                      const ay1 = clampedY;
+                      const ax2 = clampedX + span.w;
+                      const ay2 = clampedY + span.h;
+                      let overlaps = false;
+                      for (const [otherId, pos] of Object.entries(prev)) {
+                        if (otherId === def.meta.id) continue;
+                        const bx1 = pos.x;
+                        const by1 = pos.y;
+                        const bx2 = pos.x + (pos.w ?? 1);
+                        const by2 = pos.y + (pos.h ?? 1);
+                        if (ax1 < bx2 && ax2 > bx1 && ay1 < by2 && ay2 > by1) {
+                          overlaps = true;
+                          break;
+                        }
+                      }
+                      if (overlaps) return prev; // no-op if invalid
+                      return {
+                        ...prev,
+                        [def.meta.id]: {
+                          ...curr,
+                          x: clampedX,
+                          y: clampedY,
+                          w: span.w,
+                          h: span.h,
+                        },
+                      };
+                    });
+                  }}
                 />
               ))}
             </div>
