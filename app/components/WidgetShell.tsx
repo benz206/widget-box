@@ -71,7 +71,7 @@ export function WidgetShell({
         gridClasses,
         isDraggable && "cursor-move",
         "transition-all duration-200",
-        isDragging && "z-50",
+        isDragging && "z-50 widget-dragging",
         "h-full w-full min-h-0 touch-none", // Ensure full size and allow shrinking and prevent touch-scroll during drag
       ]
         .filter(Boolean)
