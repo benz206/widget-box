@@ -1,86 +1,115 @@
 "use client";
 import { useMemo, useState, useEffect } from "react";
 import WidgetShell from "./WidgetShell";
-
+import WidgetSettingsPanel from "./WidgetSettingsPanel";
 import { WidgetSize } from "@/lib/widgets/types";
+import { getRenderer } from "./widgets/renderers";
+import { getConfigFields, getAccent, getAllowedSizes } from "@/lib/widgets/registry";
 
 type Props = {
-  id: string;
+  widgetId: string;
+  instanceId: string;
   title: string;
   subtitle?: string;
   size: WidgetSize;
-  initial: any;
+  initial: unknown;
+  initialConfig: Record<string, unknown>;
   position?: { x: number; y: number; w: number; h: number };
   isDraggable?: boolean;
   isResizable?: boolean;
+  editMode: boolean;
   onSizeChange?: (size: WidgetSize) => void;
+  onConfigChange: (config: Record<string, unknown>) => void;
+  onRemove: () => void;
+  onDuplicate: () => void;
 };
 
-type ClockCfg = { timezone?: string; hour12?: boolean };
-type WeatherCfg = { city?: string };
-
 export default function WidgetTile({
-  id,
+  widgetId,
+  instanceId,
   title,
   subtitle,
   size,
   initial,
+  initialConfig,
   position,
   isDraggable = false,
   isResizable = false,
+  editMode,
   onSizeChange,
+  onConfigChange,
+  onRemove,
+  onDuplicate,
 }: Props) {
-  const [cfg, setCfg] = useState<Record<string, any>>({});
-  const [data, setData] = useState<any>(initial);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [cfg, setCfg] = useState<Record<string, unknown>>(initialConfig);
+  const [data, setData] = useState<unknown>(initial);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelPos, setPanelPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [hadFirstLoad, setHadFirstLoad] = useState(false);
 
-  const cfgString = useMemo(
-    () => encodeURIComponent(JSON.stringify(cfg)),
-    [cfg]
-  );
+  const cfgString = useMemo(() => encodeURIComponent(JSON.stringify(cfg)), [cfg]);
+  const Renderer = useMemo(() => getRenderer(widgetId), [widgetId]);
+  const configFields = useMemo(() => getConfigFields(widgetId), [widgetId]);
+  const accent = useMemo(() => getAccent(widgetId), [widgetId]);
+  const allowedSizes = useMemo(() => getAllowedSizes(widgetId), [widgetId]);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
-      setIsLoading(true);
       try {
-        const res = await fetch(`/api/widgets/data?id=${id}&cfg=${cfgString}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(
+          `/api/widgets/data?id=${encodeURIComponent(widgetId)}&cfg=${cfgString}`,
+          { cache: "no-store" }
+        );
         const json = await res.json();
         if (active && json?.display !== undefined) {
           setData(json.display);
         }
-      } catch (error) {
-        console.error("Failed to load widget data:", error);
+      } catch (err) {
+        console.error("widget load failed:", widgetId, err);
       } finally {
-        if (active) {
-          setIsLoading(false);
-        }
+        if (active) setHadFirstLoad(true);
       }
     };
     load();
     return () => {
       active = false;
     };
-  }, [id, cfgString]);
+  }, [widgetId, cfgString]);
+
+  // per-second tick for clock and pomodoro
+  useEffect(() => {
+    const tick = widgetId === "system.clock" || widgetId === "system.pomodoro";
+    if (!tick) return;
+    const interval = setInterval(() => {
+      fetch(`/api/widgets/data?id=${encodeURIComponent(widgetId)}&cfg=${cfgString}`, {
+        cache: "no-store",
+      })
+        .then((r) => r.json())
+        .then((j) => j?.display !== undefined && setData(j.display))
+        .catch(() => {});
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [widgetId, cfgString]);
+
+  function openPanel(x: number, y: number) {
+    setPanelPos({ x, y });
+    setPanelOpen(true);
+  }
 
   function onContextMenu(e: React.MouseEvent) {
     e.preventDefault();
-    setMenuPos({ x: e.clientX, y: e.clientY });
-    setMenuOpen(true);
+    openPanel(e.clientX, e.clientY);
   }
 
-  function closeMenu() {
-    setMenuOpen(false);
-    setMenuPos(null);
+  function handleConfigChange(newCfg: Record<string, unknown>) {
+    setCfg(newCfg);
+    onConfigChange(newCfg);
   }
 
   return (
     <WidgetShell
-      id={id}
+      id={instanceId}
       title={title}
       subtitle={subtitle}
       size={size}
@@ -89,143 +118,38 @@ export default function WidgetTile({
       isDraggable={isDraggable}
       isResizable={isResizable}
       onContextMenu={onContextMenu}
+      accent={accent}
+      editMode={editMode}
+      onOpenSettings={() => openPanel(
+        (position?.x ?? 0) * 100,
+        (position?.y ?? 0) * 100
+      )}
     >
-      {isLoading ? (
+      {!hadFirstLoad && !data ? (
         <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60"></div>
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-white/20 border-t-white/60" />
         </div>
       ) : (
-        <WidgetBody id={id} data={data} />
+        <Renderer data={data} size={size} />
       )}
-      {menuOpen && menuPos && (
-        <ContextMenu
-          id={id}
-          pos={menuPos}
-          cfg={cfg}
-          setCfg={setCfg}
-          onClose={closeMenu}
+      {panelOpen && (
+        <WidgetSettingsPanel
+          widgetId={widgetId}
+          instanceId={instanceId}
+          title={title}
+          accent={accent}
+          size={size}
+          config={cfg}
+          fields={configFields}
+          allowedSizes={allowedSizes}
+          position={panelPos}
+          onSizeChange={(s) => { onSizeChange?.(s); }}
+          onConfigChange={handleConfigChange}
+          onRemove={onRemove}
+          onDuplicate={onDuplicate}
+          onClose={() => setPanelOpen(false)}
         />
       )}
     </WidgetShell>
-  );
-}
-
-function WidgetBody({ id, data }: { id: string; data: any }) {
-  switch (id) {
-    case "system.time.simple": {
-      const d = data as { display: string };
-      return (
-        <div className="text-center">
-          <div className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-2">
-            {d.display}
-          </div>
-          <div className="text-xs text-white/60 font-medium">Local Time</div>
-        </div>
-      );
-    }
-    case "system.weather.simple": {
-      const d = data as { city: string; tempC: number; condition: string };
-      return (
-        <div className="flex flex-col items-center justify-center text-center space-y-2">
-          <div className="text-3xl md:text-4xl font-bold text-white">
-            {Math.round(d.tempC)}°
-          </div>
-          <div className="text-sm text-white/80 font-medium">{d.condition}</div>
-          <div className="text-xs text-white/60">{d.city}</div>
-        </div>
-      );
-    }
-    default:
-      return (
-        <div className="text-center">
-          <div className="text-sm text-white/60">Unknown Widget</div>
-        </div>
-      );
-  }
-}
-
-function ContextMenu({
-  id,
-  pos,
-  cfg,
-  setCfg,
-  onClose,
-}: {
-  id: string;
-  pos: { x: number; y: number };
-  cfg: Record<string, any>;
-  setCfg: (v: Record<string, any>) => void;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    const onDoc = () => onClose();
-    document.addEventListener("click", onDoc);
-    return () => document.removeEventListener("click", onDoc);
-  }, [onClose]);
-
-  return (
-    <div
-      className="fixed z-50 min-w-64 rounded-xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl p-4 text-sm animate-in fade-in"
-      style={{
-        left: Math.min(pos.x + 8, window.innerWidth - 280),
-        top: Math.min(pos.y + 8, window.innerHeight - 200),
-      }}
-    >
-      {id === "system.time.simple" && (
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <div className="h-2 w-2 rounded-full bg-blue-400"></div>
-            <h3 className="font-semibold text-white">Clock Settings</h3>
-          </div>
-
-          <div className="space-y-3">
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={Boolean(cfg.hour12)}
-                onChange={(e) => setCfg({ ...cfg, hour12: e.target.checked })}
-                className="w-4 h-4 rounded border-2 border-white/30 bg-transparent text-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-transparent"
-              />
-              <span className="text-sm font-medium text-white/80 group-hover:text-white transition-colors">
-                12-hour format
-              </span>
-            </label>
-
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
-                Timezone
-              </label>
-              <input
-                className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                placeholder="e.g. America/Toronto"
-                value={cfg.timezone ?? ""}
-                onChange={(e) => setCfg({ ...cfg, timezone: e.target.value })}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {id === "system.weather.simple" && (
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <div className="h-2 w-2 rounded-full bg-orange-400"></div>
-            <h3 className="font-semibold text-white">Weather Settings</h3>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-white/60 uppercase tracking-wide">
-              City
-            </label>
-            <input
-              className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
-              placeholder="e.g. Waterloo"
-              value={cfg.city ?? ""}
-              onChange={(e) => setCfg({ ...cfg, city: e.target.value })}
-            />
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
