@@ -95,7 +95,7 @@ const getGridClasses = (w: number, h: number) => {
   return `${colSpan} ${rowSpan}`;
 };
 
-export function WidgetShell({
+function WidgetShell({
   id,
   title,
   subtitle,

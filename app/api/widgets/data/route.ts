@@ -23,7 +23,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Invalid cfg" }, { status: 400 });
     }
   }
-  const data = await def.fetchData(cfg, { now: new Date() });
+  const mergedCfg = { ...(def.defaultConfig ?? {}), ...cfg };
+  const data = await def.fetchData(mergedCfg as any, { now: new Date() });
   const display = def.toDisplay ? def.toDisplay(data as any) : (data as any);
   return NextResponse.json({ display });
 }

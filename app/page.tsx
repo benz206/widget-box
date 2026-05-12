@@ -1,10 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { listWidgets } from "@/lib/widgets/registry";
-import { registerSystemWidgets } from "@/lib/widgets/system";
-import WidgetTile from "./components/WidgetTile";
-import { WIDGET_SIZES } from "@/lib/widgets/types";
+import { useState, useCallback, useRef } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -13,364 +9,357 @@ import {
   DragStartEvent,
   DragMoveEvent,
   DragEndEvent,
-  useDroppable,
-  pointerWithin,
 } from "@dnd-kit/core";
+import { useDashboard, createInstance, findFirstFit, rectsOverlap } from "@/lib/storage/dashboard";
+import { getWidgetById, getAccent, getConfigFields, getAllowedSizes } from "@/lib/widgets/registry";
+import { registerSystemWidgets } from "@/lib/widgets/system";
+import { WIDGET_SIZES, WidgetSize } from "@/lib/widgets/types";
+import WidgetTile from "./components/WidgetTile";
 
 registerSystemWidgets();
 
+type Pos = { x: number; y: number; w: number; h: number };
+
 export default function Home() {
-  const [session, setSession] = useState<any>(null);
-  const [widgets, setWidgets] = useState<any[]>([]);
-  const [widgetsWithData, setWidgetsWithData] = useState<any[]>([]);
-  const [widgetPositions, setWidgetPositions] = useState<
-    Record<string, { x: number; y: number; w: number; h: number }>
-  >({});
-  const [dropPreview, setDropPreview] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const [invalidDrop, setInvalidDrop] = useState(false);
+  const { state, hydrated, actions } = useDashboard();
+  const [editMode, setEditMode] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dropPreview, setDropPreview] = useState<Pos | null>(null);
+  const [invalidDrop, setInvalidDrop] = useState(false);
   const gridRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    // Load session and widgets on client side
-    const loadData = async () => {
-      try {
-        const sessionRes = await fetch("/api/auth/session");
-        const sessionData = await sessionRes.json();
-        setSession(sessionData);
-
-        const widgetsList = listWidgets();
-        setWidgets(widgetsList);
-
-        // Fetch data for each widget (simple defaults)
-        const widgetsWithData = await Promise.all(
-          widgetsList.map(async (w) => {
-            const data = await w.fetchData({} as any, { now: new Date() });
-            const display = w.toDisplay
-              ? w.toDisplay(data as any)
-              : (data as any);
-            return { def: w, display } as const;
-          })
-        );
-        setWidgetsWithData(widgetsWithData);
-
-        // Initialize positions
-        const initialPositions: Record<string, { x: number; y: number; w: number; h: number }> = {};
-        widgetsList.forEach((w, index) => {
-          const sizeKey = w.meta.size as keyof typeof WIDGET_SIZES;
-          const span = WIDGET_SIZES[sizeKey] ?? { w: 1, h: 1 };
-          initialPositions[w.meta.id] = {
-            x: index % 5,
-            y: Math.floor(index / 5),
-            w: span.w,
-            h: span.h,
-          };
-        });
-        setWidgetPositions(initialPositions);
-      } catch (error) {
-        console.error("Failed to load data:", error);
-      }
-    };
-
-    loadData();
-  }, []);
+  const cols = state?.preferences.gridCols ?? 5;
+  const rows = state?.preferences.gridRows ?? 5;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
 
-  const COLS = 5;
-  const ROWS = 5;
-  const cells = useMemo(() => {
-    const items: { x: number; y: number; id: string }[] = [];
-    for (let y = 0; y < ROWS; y++) {
-      for (let x = 0; x < COLS; x++) {
-        items.push({ x, y, id: `cell-${x}-${y}` });
-      }
-    }
-    return items;
-  }, []);
+  const cellSize = useCallback(() => {
+    const el = gridRef.current;
+    if (!el) return { cw: 0, ch: 0, gap: 0 };
+    const rect = el.getBoundingClientRect();
+    const styles = window.getComputedStyle(el);
+    const gap = parseFloat(styles.columnGap || styles.gap || "0");
+    const cw = (rect.width - gap * (cols - 1)) / cols;
+    const ch = (rect.height - gap * (rows - 1)) / rows;
+    return { cw, ch, gap };
+  }, [cols, rows]);
 
   const onDragStart = useCallback(
     (event: DragStartEvent) => {
+      if (!state) return;
       const id = String(event.active.id);
       setActiveId(id);
-      const pos = widgetPositions[id] || { x: 0, y: 0 };
-      setDropPreview({ x: pos.x, y: pos.y });
+      const inst = state.instances.find((i) => i.instanceId === id);
+      if (inst) setDropPreview({ ...inst.position });
     },
-    [widgetPositions]
+    [state]
   );
 
   const onDragMove = useCallback(
     (event: DragMoveEvent) => {
-      if (!event.over) return;
-      const overId = String(event.over.id);
-      if (overId.startsWith("cell-")) {
-        const [, xs, ys] = overId.split("-");
-        let x = parseInt(xs, 10);
-        let y = parseInt(ys, 10);
-        if (Number.isFinite(x) && Number.isFinite(y)) {
-          const span =
-            activeId && widgetPositions[activeId]
-              ? {
-                  w: widgetPositions[activeId].w ?? 1,
-                  h: widgetPositions[activeId].h ?? 1,
-                }
-              : { w: 1, h: 1 };
-          const cols = 5;
-          const rows = 5;
-          x = Math.max(0, Math.min(x, cols - span.w));
-          y = Math.max(0, Math.min(y, rows - span.h));
-          // detect overlap with other widgets
-          let overlaps = false;
-          if (activeId) {
-            const ax1 = x;
-            const ay1 = y;
-            const ax2 = x + span.w;
-            const ay2 = y + span.h;
-            for (const [id, pos] of Object.entries(widgetPositions)) {
-              if (id === activeId) continue;
-              const bx1 = pos.x;
-              const by1 = pos.y;
-              const bx2 = pos.x + (pos.w ?? 1);
-              const by2 = pos.y + (pos.h ?? 1);
-              if (ax1 < bx2 && ax2 > bx1 && ay1 < by2 && ay2 > by1) {
-                overlaps = true;
-                break;
-              }
-            }
-          }
-          setInvalidDrop(overlaps);
-          setDropPreview({ x, y });
-        }
-      }
+      if (!state) return;
+      const id = String(event.active.id);
+      const inst = state.instances.find((i) => i.instanceId === id);
+      if (!inst) return;
+      const start = inst.position;
+      const { cw, ch, gap } = cellSize();
+      if (!cw || !ch) return;
+
+      const dx = event.delta.x;
+      const dy = event.delta.y;
+      const stepX = cw + gap;
+      const stepY = ch + gap;
+
+      let nx = Math.round(start.x + dx / stepX);
+      let ny = Math.round(start.y + dy / stepY);
+      nx = Math.max(0, Math.min(nx, cols - start.w));
+      ny = Math.max(0, Math.min(ny, rows - start.h));
+
+      const candidate: Pos = { x: nx, y: ny, w: start.w, h: start.h };
+      const overlaps = state.instances.some(
+        (i) => i.instanceId !== id && rectsOverlap(i.position, candidate)
+      );
+      setInvalidDrop(overlaps);
+      setDropPreview(candidate);
     },
-    [activeId, widgetPositions]
+    [state, cellSize, cols, rows]
   );
 
   const onDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const id = String(event.active.id);
-      if (dropPreview && !invalidDrop) {
-        const span = widgetPositions[id]
-          ? { w: widgetPositions[id].w ?? 1, h: widgetPositions[id].h ?? 1 }
-          : { w: 1, h: 1 };
-        const cols = 5;
-        const rows = 5;
-        const clampedX = Math.max(0, Math.min(dropPreview.x, cols - span.w));
-        const clampedY = Math.max(0, Math.min(dropPreview.y, rows - span.h));
-        setWidgetPositions((prev) => ({
-          ...prev,
-          [id]: {
-            ...(prev[id] ?? { w: 1, h: 1 }),
-            x: clampedX,
-            y: clampedY,
-          },
-        }));
+    (_event: DragEndEvent) => {
+      if (activeId && dropPreview && !invalidDrop) {
+        actions.updateInstance(activeId, { position: dropPreview });
       }
+      setActiveId(null);
       setDropPreview(null);
       setInvalidDrop(false);
-      setActiveId(null);
     },
-    [dropPreview, invalidDrop, widgetPositions]
+    [activeId, dropPreview, invalidDrop, actions]
   );
 
-  const user = session?.user;
+  const handleSizeChange = useCallback(
+    (instanceId: string, newSize: WidgetSize) => {
+      if (!state) return;
+      const span = WIDGET_SIZES[newSize];
+      const inst = state.instances.find((i) => i.instanceId === instanceId);
+      if (!inst) return;
+      const others = state.instances
+        .filter((i) => i.instanceId !== instanceId)
+        .map((i) => i.position);
+
+      const cx = Math.max(0, Math.min(inst.position.x, cols - span.w));
+      const cy = Math.max(0, Math.min(inst.position.y, rows - span.h));
+      const tryAt = (x: number, y: number) => {
+        const candidate: Pos = { x, y, w: span.w, h: span.h };
+        return others.some((o) => rectsOverlap(o, candidate)) ? null : candidate;
+      };
+
+      const fit =
+        tryAt(cx, cy) ??
+        (() => {
+          const ff = findFirstFit(others, span.w, span.h, cols, rows);
+          return ff ? { ...ff, w: span.w, h: span.h } : null;
+        })();
+
+      if (fit) {
+        actions.updateInstance(instanceId, { size: newSize, position: fit });
+      }
+    },
+    [state, actions, cols, rows]
+  );
+
+  const handleConfigChange = useCallback(
+    (instanceId: string, config: Record<string, unknown>) => {
+      actions.updateInstance(instanceId, { config });
+    },
+    [actions]
+  );
+
+  const handleRemove = useCallback(
+    (instanceId: string) => {
+      actions.removeInstance(instanceId);
+    },
+    [actions]
+  );
+
+  const handleDuplicate = useCallback(
+    (instanceId: string) => {
+      if (!state) return;
+      const inst = state.instances.find((i) => i.instanceId === instanceId);
+      if (!inst) return;
+      const span = WIDGET_SIZES[inst.size];
+      const taken = state.instances.map((i) => i.position);
+      const ff = findFirstFit(taken, span.w, span.h, cols, rows);
+      if (!ff) {
+        console.warn("No fit for duplicate of", instanceId);
+        return;
+      }
+      const newInst = createInstance(inst.widgetId, {
+        size: inst.size,
+        position: { ...ff, w: span.w, h: span.h },
+        config: { ...inst.config },
+      });
+      actions.addInstance(newInst);
+    },
+    [state, actions, cols, rows]
+  );
+
+  // Session fetch is removed — user info is optional and not in scope here.
+  // The header will not render user email to keep this self-contained.
+
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 p-8 rounded-2xl bg-white/[0.06] border border-white/10">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white/60" />
+          <span className="text-white/50 text-sm">Loading dashboard…</span>
+        </div>
+      </div>
+    );
+  }
+
+  const isNullState = state === null;
+  const isEmpty = state !== null && state.instances.length === 0;
+  const hasWidgets = state !== null && state.instances.length > 0;
 
   return (
     <div className="min-h-screen">
-      {/* Modern sticky header */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur-xl supports-[backdrop-filter]:bg-black/60">
-        <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-sm">W</span>
-              </div>
-              <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                widget-box
-              </h1>
+      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/70 backdrop-blur-xl">
+        <div className="container mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
+          <div className="flex items-center gap-3">
+            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow">
+              <span className="text-white font-bold text-xs">W</span>
             </div>
+            <h1 className="text-sm font-semibold tracking-tight text-white">widget-box</h1>
           </div>
-
-          <nav className="flex items-center space-x-4">
-            {user ? (
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
-                  <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
-                  <span className="text-sm font-medium text-white/90">
-                    {user.email}
-                  </span>
-                </div>
-                <button className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200">
-                  Settings
-                </button>
-              </div>
-            ) : (
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center rounded-lg bg-white text-black px-4 py-2 text-sm font-semibold shadow-lg hover:bg-white/90 transition-all duration-200 hover:shadow-xl"
+          <nav className="flex items-center gap-2">
+            <Link
+              href="/marketplace"
+              className="inline-flex items-center rounded-full px-3.5 py-1.5 text-xs font-medium text-white/70 hover:text-white hover:bg-white/10 border border-white/10 hover:border-white/20 transition-colors"
+            >
+              Marketplace
+            </Link>
+            {hasWidgets && (
+              <button
+                onClick={() => setEditMode((v) => !v)}
+                className={[
+                  "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium border transition-colors",
+                  editMode
+                    ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30"
+                    : "bg-white/5 border-white/15 text-white/70 hover:text-white hover:bg-white/10",
+                ].join(" ")}
               >
-                Sign in
-              </Link>
+                {editMode && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                )}
+                {editMode ? "Done" : "Edit"}
+              </button>
             )}
+            <Link
+              href="/login"
+              className="inline-flex items-center rounded-lg bg-white text-black px-3.5 py-1.5 text-xs font-semibold hover:bg-white/90 transition-colors"
+            >
+              Sign in
+            </Link>
           </nav>
         </div>
       </header>
 
-      {/* Main content */}
       <main className="container mx-auto max-w-7xl px-6 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold tracking-tight text-white mb-2">
-            Your Dashboard
-          </h2>
-          <p className="text-white/60 text-lg">
-            Manage your widgets and customize your workspace
-          </p>
-        </div>
-
-        {widgetsWithData.length > 0 ? (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={pointerWithin}
-            onDragStart={onDragStart}
-            onDragMove={onDragMove}
-            onDragEnd={onDragEnd}
-          >
-            <div className="widget-grid" ref={gridRef}>
-              {/* Droppable cells overlay */}
-              {cells.map((c) => (
-                <DroppableCell key={c.id} id={c.id} x={c.x} y={c.y} />
-              ))}
-              {/* Render drop preview */}
-              {dropPreview && (
-                <div
-                  className={["drop-preview", invalidDrop && "drop-preview--invalid"].filter(Boolean).join(" ")}
-                  style={{
-                    gridColumn: `${dropPreview.x + 1} / span ${
-                      (activeId && widgetPositions[activeId]?.w) || 1
-                    }`,
-                    gridRow: `${dropPreview.y + 1} / span ${
-                      (activeId && widgetPositions[activeId]?.h) || 1
-                    }`,
-                  }}
-                />
-              )}
-
-              {widgetsWithData.map(({ def, display }, index) => (
-                <WidgetTile
-                  key={def.meta.id}
-                  id={def.meta.id}
-                  title={def.meta.name}
-                  subtitle={def.meta.provider}
-                  size={def.meta.size as any}
-                  initial={display}
-                  position={
-                    widgetPositions[def.meta.id] || {
-                      x: index % 5,
-                      y: Math.floor(index / 5),
-                      w: (WIDGET_SIZES[def.meta.size as keyof typeof WIDGET_SIZES]?.w ?? 1),
-                      h: (WIDGET_SIZES[def.meta.size as keyof typeof WIDGET_SIZES]?.h ?? 1),
-                    }
-                  }
-                  isDraggable={true}
-                  isResizable={true}
-                  onSizeChange={(newSize) => {
-                    const span =
-                      WIDGET_SIZES[newSize as keyof typeof WIDGET_SIZES] ??
-                      { w: 1, h: 1 };
-                    setWidgetPositions((prev) => {
-                      const curr = prev[def.meta.id] ?? {
-                        x: index % 5,
-                        y: Math.floor(index / 5),
-                        w: 1,
-                        h: 1,
-                      };
-                      // clamp within bounds
-                      const cols = 5;
-                      const rows = 5;
-                      const clampedX = Math.max(0, Math.min(curr.x, cols - span.w));
-                      const clampedY = Math.max(0, Math.min(curr.y, rows - span.h));
-                      // check overlap; if overlap, skip size change
-                      const ax1 = clampedX;
-                      const ay1 = clampedY;
-                      const ax2 = clampedX + span.w;
-                      const ay2 = clampedY + span.h;
-                      let overlaps = false;
-                      for (const [otherId, pos] of Object.entries(prev)) {
-                        if (otherId === def.meta.id) continue;
-                        const bx1 = pos.x;
-                        const by1 = pos.y;
-                        const bx2 = pos.x + (pos.w ?? 1);
-                        const by2 = pos.y + (pos.h ?? 1);
-                        if (ax1 < bx2 && ax2 > bx1 && ay1 < by2 && ay2 > by1) {
-                          overlaps = true;
-                          break;
-                        }
-                      }
-                      if (overlaps) return prev; // no-op if invalid
-                      return {
-                        ...prev,
-                        [def.meta.id]: {
-                          ...curr,
-                          x: clampedX,
-                          y: clampedY,
-                          w: span.w,
-                          h: span.h,
-                        },
-                      };
-                    });
-                  }}
-                />
-              ))}
-            </div>
-          </DndContext>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center animate-in">
-            <div className="h-20 w-20 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center mb-6 animate-scale-in">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <span className="text-white font-bold text-lg">W</span>
+        {isNullState && (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+            <div className="max-w-md">
+              <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-6 mx-auto shadow-2xl shadow-blue-500/20">
+                <span className="text-white font-bold text-2xl">W</span>
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-white mb-3">Welcome to widget-box</h2>
+              <p className="text-white/50 text-base leading-relaxed mb-8">
+                Your personal dashboard for widgets that matter. Set up your space in minutes or browse what{"'"}s available.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link
+                  href="/setup"
+                  className="inline-flex items-center justify-center rounded-xl bg-white text-black px-6 py-2.5 text-sm font-semibold hover:bg-white/90 transition-colors"
+                >
+                  Get started
+                </Link>
+                <Link
+                  href="/marketplace"
+                  className="inline-flex items-center justify-center rounded-xl bg-white/10 border border-white/20 text-white px-6 py-2.5 text-sm font-medium hover:bg-white/15 transition-colors"
+                >
+                  Browse widgets
+                </Link>
               </div>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-3">
-              No widgets available
-            </h3>
-            <p className="text-white/60 max-w-md text-center">
-              It looks like there are no widgets configured yet. Check back
-              later or contact your administrator.
-            </p>
           </div>
+        )}
+
+        {isEmpty && (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+            <div className="max-w-sm">
+              <div className="h-16 w-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mb-4 mx-auto">
+                <span className="text-2xl">📦</span>
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Your dashboard is empty</h3>
+              <p className="text-white/50 text-sm leading-relaxed mb-6">
+                Add some widgets to make this space yours.
+              </p>
+              <div className="flex flex-col gap-2">
+                <Link
+                  href="/marketplace"
+                  className="inline-flex items-center justify-center rounded-xl bg-white text-black px-5 py-2 text-sm font-semibold hover:bg-white/90 transition-colors"
+                >
+                  Browse the marketplace
+                </Link>
+                <Link
+                  href="/setup"
+                  className="inline-flex items-center justify-center rounded-xl text-white/50 hover:text-white/80 px-5 py-2 text-sm transition-colors"
+                >
+                  Run setup again
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {hasWidgets && (
+          <>
+            {!editMode && (
+              <div className="mb-6 text-center">
+                <h2 className="text-2xl font-bold tracking-tight text-white">Your Widgets</h2>
+                <p className="text-white/50 text-sm mt-1">Hover for size controls · Right-click for settings</p>
+              </div>
+            )}
+
+            <DndContext
+              sensors={sensors}
+              onDragStart={editMode ? onDragStart : undefined}
+              onDragMove={editMode ? onDragMove : undefined}
+              onDragEnd={editMode ? onDragEnd : undefined}
+            >
+              <div
+                className="widget-grid"
+                ref={gridRef}
+                style={
+                  cols !== 5 || rows !== 5
+                    ? {
+                        gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                        gridTemplateRows: `repeat(${rows}, minmax(110px, 1fr))`,
+                      }
+                    : undefined
+                }
+              >
+                {dropPreview && editMode && (
+                  <div
+                    className={["drop-preview", invalidDrop && "drop-preview--invalid"]
+                      .filter(Boolean)
+                      .join(" ")}
+                    style={{
+                      gridColumn: `${dropPreview.x + 1} / span ${dropPreview.w}`,
+                      gridRow: `${dropPreview.y + 1} / span ${dropPreview.h}`,
+                    }}
+                  />
+                )}
+
+                {state.instances.map((inst) => {
+                  const def = getWidgetById(inst.widgetId);
+                  if (!def) return null;
+                  return (
+                    <WidgetTile
+                      key={inst.instanceId}
+                      widgetId={inst.widgetId}
+                      instanceId={inst.instanceId}
+                      title={def.meta.name}
+                      subtitle={def.meta.provider}
+                      size={inst.size}
+                      initial={undefined}
+                      initialConfig={inst.config}
+                      position={inst.position}
+                      isDraggable={editMode}
+                      isResizable
+                      editMode={editMode}
+                      onSizeChange={(s) => handleSizeChange(inst.instanceId, s)}
+                      onConfigChange={(cfg) => handleConfigChange(inst.instanceId, cfg)}
+                      onRemove={() => handleRemove(inst.instanceId)}
+                      onDuplicate={() => handleDuplicate(inst.instanceId)}
+                    />
+                  );
+                })}
+              </div>
+            </DndContext>
+
+            {editMode && (
+              <div className="mt-6 flex justify-center">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white/40 text-xs">
+                  Drag to rearrange · Right-click or click ⚙ for settings · Click "Done" to save
+                </div>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
-  );
-}
-
-function Preview({ meta }: { meta: { name: string; desc?: string } }) {
-  return (
-    <div className="flex flex-col items-center justify-center text-center">
-      <div className="text-3xl font-semibold tracking-tight drop-shadow-[0_1px_0_rgba(255,255,255,.4)]">
-        {meta.name}
-      </div>
-      {meta.desc && (
-        <div className="text-xs mt-1 opacity-80 max-w-[18ch]">{meta.desc}</div>
-      )}
-    </div>
-  );
-}
-
-function DroppableCell({ id, x, y }: { id: string; x: number; y: number }) {
-  const { setNodeRef } = useDroppable({ id });
-  return (
-    <div
-      ref={setNodeRef}
-      style={{
-        gridColumn: `${x + 1} / span 1`,
-        gridRow: `${y + 1} / span 1`,
-      }}
-    />
   );
 }

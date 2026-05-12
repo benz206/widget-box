@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #fafafa;
+  --background: #060814;
+  --foreground: #f5f7ff;
 }
 
 @theme inline {
@@ -12,33 +12,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #070b18;
-    --foreground: #eef2ff;
-  }
-}
-
 body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background: radial-gradient(
-      1200px 700px at 10% -10%,
-      rgba(255, 175, 189, 0.08),
-      transparent 60%
-    ),
-    radial-gradient(
-      1000px 600px at 110% 0%,
-      rgba(100, 181, 246, 0.1),
-      transparent 50%
-    ),
-    radial-gradient(
-      900px 600px at 50% 120%,
-      rgba(129, 199, 132, 0.08),
-      transparent 60%
-    ),
-    linear-gradient(180deg, #0a0a0a 0%, #0f0f0f 40%, #0a0a0a 100%);
+  background:
+    radial-gradient(1200px 700px at 10% -10%, rgba(255, 105, 180, 0.10), transparent 60%),
+    radial-gradient(1000px 600px at 110% 0%, rgba(100, 181, 246, 0.12), transparent 50%),
+    radial-gradient(900px 600px at 50% 120%, rgba(167, 139, 250, 0.10), transparent 60%),
+    linear-gradient(180deg, #060814 0%, #0a0e1f 40%, #060814 100%);
   background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -46,175 +28,96 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Subtle grain texture */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0 0 0 0 0 0.02 0'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: 0.3;
+  opacity: 0.25;
 }
 
-/* 5x5 Widget Grid System */
+/* 5x5 widget grid */
 .widget-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(5, 1fr);
+  grid-template-rows: repeat(5, minmax(110px, 1fr));
   gap: 1rem;
-  height: 80vh;
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
 .widget-grid > * {
-  min-height: 0; /* Allow grid items to shrink */
-  height: 100%; /* Fill the grid cell */
+  min-height: 0;
+  min-width: 0;
 }
 
 @media (min-width: 768px) {
   .widget-grid {
-    gap: 1.5rem;
-    height: 85vh;
-    max-width: 1000px;
+    gap: 1.25rem;
+    grid-template-rows: repeat(5, minmax(130px, 1fr));
+    max-width: 1100px;
   }
 }
 
 @media (min-width: 1024px) {
   .widget-grid {
-    gap: 2rem;
-    height: 90vh;
-    max-width: 1200px;
+    gap: 1.5rem;
+    grid-template-rows: repeat(5, 150px);
+    max-width: 1240px;
   }
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+::selection { background: rgba(99, 102, 241, 0.35); color: inherit; }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Selection styles */
-::selection {
-  background: rgba(59, 130, 246, 0.3);
-  color: inherit;
-}
-
-/* Custom animations */
 @keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
+.animate-in { animation: fade-in 0.25s ease-out; }
+.fade-in { animation: fade-in 0.2s ease-out; }
 
-@keyframes slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-in {
-  animation: fade-in 0.3s ease-out;
-}
-
-.animate-slide-in {
-  animation: slide-in 0.3s ease-out;
-}
-
-.animate-scale-in {
-  animation: scale-in 0.2s ease-out;
-}
-
-.fade-in {
-  animation: fade-in 0.3s ease-out;
-}
-
-/* Drag and drop styles */
+/* dragging */
 .widget-dragging {
-  opacity: 0.98;
-  transform: scale(1.005);
   z-index: 1000;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-  transition: transform 0s linear, box-shadow 0s linear; /* Disable expensive transitions */
-  will-change: transform;
-  pointer-events: none; /* ensure overlay hover/transition effects don't trigger */
+}
+.widget-dragging > section {
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.15) !important;
+  transform: scale(1.03);
+  transition: transform 120ms ease;
 }
 
 .drop-preview {
-  background: rgba(59, 130, 246, 0.15);
-  border: 2px dashed rgba(59, 130, 246, 0.8);
-  border-radius: 1rem;
   position: relative;
-  z-index: 10;
-  min-height: 0;
-  height: 100%;
+  border-radius: 1rem;
+  background: rgba(99, 102, 241, 0.15);
+  border: 2px dashed rgba(129, 140, 248, 0.7);
+  z-index: 1;
   pointer-events: none;
 }
-
-.drop-preview::before {
+.drop-preview::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    45deg,
-    transparent 30%,
-    rgba(59, 130, 246, 0.1) 50%,
-    transparent 70%
-  );
   border-radius: inherit;
-  animation: shimmer 1.5s infinite;
+  background: linear-gradient(45deg, transparent 30%, rgba(129, 140, 248, 0.15) 50%, transparent 70%);
+  animation: shimmer 1.6s linear infinite;
 }
-
 @keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
-
-/* Invalid drop state */
 .drop-preview--invalid {
   background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.9);
+  border-color: rgba(239, 68, 68, 0.85);
 }
+.drop-preview--invalid::after { display: none; }
+
+.tabular-nums { font-variant-numeric: tabular-nums; }
