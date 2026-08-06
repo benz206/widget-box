@@ -59,7 +59,9 @@ export function useRemote<T>(url: string | null, refreshMs?: number): Remote<T> 
       }
     };
 
-    setState((prev) => ({ ...prev, loading: !prev.data }));
+    // A new url means different data — keeping the old response on screen
+    // would show the previous city's weather under the new city's name.
+    setState({ data: null, error: null, loading: true });
     load();
 
     const id = refreshMs ? setInterval(load, refreshMs) : null;

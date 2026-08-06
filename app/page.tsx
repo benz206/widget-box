@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -36,12 +36,14 @@ type Metrics = { cell: number; gap: number; cols: number };
 /**
  * Square cells: the row height is driven from the measured column width, which
  * CSS alone cannot express for a percentage-width grid.
+ *
+ * Takes the node rather than a ref, because the grid mounts only after
+ * hydration and a ref object's identity would never tell us it appeared.
  */
-function useGridMetrics(ref: React.RefObject<HTMLDivElement | null>): Metrics {
+function useGridMetrics(el: HTMLDivElement | null): Metrics {
   const [metrics, setMetrics] = useState<Metrics>({ cell: 150, gap: 16, cols: DEFAULT_COLS });
 
   useLayoutEffect(() => {
-    const el = ref.current;
     if (!el) return;
 
     const measure = () => {
@@ -62,7 +64,7 @@ function useGridMetrics(ref: React.RefObject<HTMLDivElement | null>): Metrics {
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [ref]);
+  }, [el]);
 
   return metrics;
 }
@@ -86,8 +88,8 @@ export default function Dashboard() {
   const [preview, setPreview] = useState<WidgetPosition | null>(null);
   const [previewBlocked, setPreviewBlocked] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const metrics = useGridMetrics(gridRef);
+  const [gridEl, setGridEl] = useState<HTMLDivElement | null>(null);
+  const metrics = useGridMetrics(gridEl);
   const canDrag = useCanDrag();
 
   const cols = state?.preferences.gridCols ?? DEFAULT_COLS;
@@ -315,7 +317,7 @@ export default function Dashboard() {
             onDragEnd={onDragEnd}
           >
             <div
-              ref={gridRef}
+              ref={setGridEl}
               className="widget-grid"
               style={
                 {
