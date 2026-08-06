@@ -1,6 +1,6 @@
 "use client";
 
-import { listWidgets, listByCategory } from "@/lib/widgets/registry";
+import { listByCategory } from "@/lib/widgets/registry";
 import PresetCard from "./PresetCard";
 
 export const PRESETS = [
