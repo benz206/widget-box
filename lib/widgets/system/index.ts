@@ -1,32 +1,41 @@
 import { registerWidget } from "../registry";
-import { clockWidget } from "./clock";
-import { weatherWidget } from "./weather";
-import { calendarWidget } from "./calendar";
+import { activityWidget } from "./activity";
 import { batteryWidget } from "./battery";
-import { stocksWidget } from "./stocks";
-import { musicWidget } from "./music";
-import { fitnessWidget } from "./fitness";
-import { pomodoroWidget } from "./pomodoro";
+import { calendarWidget } from "./calendar";
+import { clockWidget } from "./clock";
+import { countdownWidget } from "./countdown";
+import { dailyNoteWidget } from "./dailynote";
+import { marketsWidget } from "./markets";
 import { moodWidget } from "./mood";
-import { affirmationWidget } from "./affirmation";
-import { astronomyWidget } from "./astronomy";
-import { pixelPetWidget } from "./pixelpet";
+import { notesWidget } from "./notes";
+import { petWidget } from "./pet";
+import { pomodoroWidget } from "./pomodoro";
+import { skyWidget } from "./sky";
+import { weatherWidget } from "./weather";
+
+const WIDGETS = [
+  clockWidget,
+  weatherWidget,
+  calendarWidget,
+  pomodoroWidget,
+  notesWidget,
+  countdownWidget,
+  marketsWidget,
+  batteryWidget,
+  skyWidget,
+  activityWidget,
+  moodWidget,
+  dailyNoteWidget,
+  petWidget,
+];
 
 let registered = false;
 
 export function registerSystemWidgets(): void {
   if (registered) return;
   registered = true;
-  registerWidget(clockWidget);
-  registerWidget(weatherWidget);
-  registerWidget(stocksWidget);
-  registerWidget(musicWidget);
-  registerWidget(calendarWidget);
-  registerWidget(batteryWidget);
-  registerWidget(fitnessWidget);
-  registerWidget(pomodoroWidget);
-  registerWidget(moodWidget);
-  registerWidget(affirmationWidget);
-  registerWidget(astronomyWidget);
-  registerWidget(pixelPetWidget);
+  WIDGETS.forEach(registerWidget);
 }
+
+/** Ids of every built-in widget, for validating stored dashboards. */
+export const SYSTEM_WIDGET_IDS: Set<string> = new Set(WIDGETS.map((w) => w.meta.id));

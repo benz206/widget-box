@@ -1,32 +1,58 @@
 "use client";
 
+import Icon, { type IconName } from "@/app/components/ui/Icon";
+
+const POINTS: { icon: IconName; title: string; body: string }[] = [
+  {
+    icon: "weather",
+    title: "Live, not pretend",
+    body: "Real forecasts, real quotes, your device's real battery.",
+  },
+  {
+    icon: "grid",
+    title: "Arrange it your way",
+    body: "Three sizes, dragged anywhere on the grid.",
+  },
+  {
+    icon: "lock",
+    title: "Stays on this device",
+    body: "Your layout lives in this browser. No account needed.",
+  },
+];
+
 export default function StepWelcome() {
   return (
-    <div className="flex flex-col items-center text-center py-8 px-4">
-      <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30 mb-6">
-        <span className="text-white font-bold text-2xl">W</span>
-      </div>
+    <div className="flex flex-col items-center py-4 text-center">
+      <span
+        className="mb-6 flex h-[68px] w-[68px] items-center justify-center rounded-[19px] text-white"
+        style={{
+          background: "linear-gradient(150deg, #0a84ff, #5e5ce6)",
+          boxShadow: "0 10px 30px rgba(10,132,255,0.35)",
+        }}
+      >
+        <Icon name="grid" size={32} strokeWidth={2} />
+      </span>
 
-      <h1 className="text-4xl font-bold tracking-tight text-white mb-3">
-        Welcome to widget-box
+      <h1 className="text-[30px] font-semibold tracking-tight">
+        Welcome to Widget Box
       </h1>
-      <p className="text-white/60 text-lg max-w-md leading-relaxed mb-10">
-        A personal dashboard of beautiful, glanceable widgets.
-        Let's set up yours in under a minute.
+      <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-secondary">
+        A dashboard of small, glanceable things. This takes about a minute.
       </p>
 
-      <div className="flex flex-col gap-4 w-full max-w-sm">
-        {[
-          { icon: "◈", label: "Pick from 12+ widgets" },
-          { icon: "✦", label: "Customize each one" },
-          { icon: "⤢", label: "Drag, resize, rearrange" },
-        ].map(({ icon, label }) => (
+      <div className="mt-8 flex w-full max-w-md flex-col gap-2">
+        {POINTS.map((point) => (
           <div
-            key={label}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.05] border border-white/10"
+            key={point.title}
+            className="flex items-start gap-3 rounded-card bg-fill px-4 py-3 text-left"
           >
-            <span className="text-blue-400 text-sm w-5 text-center shrink-0">{icon}</span>
-            <span className="text-white/80 text-sm">{label}</span>
+            <span className="mt-0.5 shrink-0 text-accent">
+              <Icon name={point.icon} size={17} strokeWidth={2} />
+            </span>
+            <div>
+              <div className="text-[14px] font-medium">{point.title}</div>
+              <div className="text-[12.5px] text-secondary">{point.body}</div>
+            </div>
           </div>
         ))}
       </div>

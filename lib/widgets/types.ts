@@ -1,3 +1,6 @@
+import type { ComponentType } from "react";
+import type { IconName } from "@/app/components/ui/Icon";
+
 export type WidgetSize = "small" | "medium" | "large";
 
 export type WidgetCategory =
@@ -8,69 +11,71 @@ export type WidgetCategory =
   | "fun"
   | "ambient";
 
+/**
+ * Grid spans, proportioned like iOS home-screen widgets: a square, a wide
+ * double, and a big square.
+ */
+export const WIDGET_SIZES: Record<WidgetSize, { w: number; h: number }> = {
+  small: { w: 1, h: 1 },
+  medium: { w: 2, h: 1 },
+  large: { w: 2, h: 2 },
+};
+
+export const SIZE_LABELS: Record<WidgetSize, string> = {
+  small: "Small",
+  medium: "Medium",
+  large: "Large",
+};
+
 export type ConfigField =
   | { kind: "text"; key: string; label: string; placeholder?: string; help?: string }
   | { kind: "toggle"; key: string; label: string; help?: string }
   | { kind: "list"; key: string; label: string; placeholder?: string; help?: string }
-  | { kind: "select"; key: string; label: string; options: { value: string; label: string }[]; placeholder?: string; help?: string }
-  | { kind: "number"; key: string; label: string; placeholder?: string; min?: number; max?: number; help?: string };
+  | { kind: "date"; key: string; label: string; help?: string }
+  | {
+      kind: "select";
+      key: string;
+      label: string;
+      options: { value: string; label: string }[];
+      help?: string;
+    }
+  | {
+      kind: "number";
+      key: string;
+      label: string;
+      placeholder?: string;
+      min?: number;
+      max?: number;
+      help?: string;
+    };
 
-export const WIDGET_SIZES = {
-  small: { w: 1, h: 1 },
-  medium: { w: 2, h: 2 },
-  large: { w: 3, h: 2 },
-} as const;
+export type WidgetPosition = { x: number; y: number; w: number; h: number };
 
 export type WidgetMetadata = {
   id: string;
-  slug: string;
   name: string;
-  provider: string;
-  creator?: string;
+  /** One line shown on marketplace cards. */
+  tagline: string;
+  description: string;
+  category: WidgetCategory;
+  icon: IconName;
+  /** Tint used for the widget's icon and its data marks. Used sparingly. */
+  accent: string;
+  tags: string[];
+  sizes: WidgetSize[];
+  defaultSize: WidgetSize;
+};
+
+export type WidgetViewProps = {
+  instanceId: string;
   size: WidgetSize;
-  description?: string;
-  refreshIntervalSeconds?: number;
-  category?: WidgetCategory;
-  tags?: string[];
-  summary?: string;
-  allowedSizes?: WidgetSize[];
-  accent?: string;
+  /** Instance config already merged over the widget's defaults. */
+  config: Record<string, unknown>;
 };
 
-export type WidgetContext = {
-  now: Date;
-  signal?: AbortSignal;
-};
-
-export type WidgetInstanceConfig = Record<string, unknown>;
-
-export type WidgetData = unknown;
-
-export type WidgetPosition = {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-};
-
-export type UserWidgetConfig = {
-  id: string;
-  widgetId: string;
-  position: WidgetPosition;
-  config: WidgetInstanceConfig;
-  data?: WidgetData;
-  dataUpdatedAt?: Date;
-  refreshIntervalSeconds?: number;
-};
-
-export interface WidgetDefinition<
-  Cfg extends WidgetInstanceConfig = WidgetInstanceConfig,
-  Data = WidgetData
-> {
+export type WidgetDefinition = {
   meta: WidgetMetadata;
-  defaultConfig?: Cfg;
+  defaultConfig?: Record<string, unknown>;
   configFields?: ConfigField[];
-  fetchData: (config: Cfg, ctx: WidgetContext) => Promise<Data>;
-  computeSize?: (config: Cfg) => { w: number; h: number } | undefined;
-  toDisplay?: (data: Data) => unknown;
-}
+  View: ComponentType<WidgetViewProps>;
+};

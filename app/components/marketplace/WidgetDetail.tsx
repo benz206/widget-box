@@ -1,404 +1,197 @@
 "use client";
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { WidgetSize, WIDGET_SIZES, ConfigField } from "@/lib/widgets/types";
-import { getWidgetById, getAllowedSizes, getConfigFields } from "@/lib/widgets/registry";
-import { getRenderer } from "@/app/components/widgets/renderers";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import ConfigForm from "@/app/components/ui/ConfigForm";
+import Icon from "@/app/components/ui/Icon";
+import Segmented from "@/app/components/ui/Segmented";
+import TilePreview from "@/app/components/widgets/TilePreview";
 import {
-  useDashboard,
   createInstance,
+  DEFAULT_COLS,
+  DEFAULT_ROWS,
   findFirstFit,
+  type DashboardActions,
+  type DashboardState,
 } from "@/lib/storage/dashboard";
-
-const COLS = 5;
-const ROWS = 5;
-
-const SIZE_PX: Record<WidgetSize, { w: number; h: number }> = {
-  small: { w: 110, h: 110 },
-  medium: { w: 220, h: 150 },
-  large: { w: 330, h: 150 },
-};
-
-function ConfigControl({
-  field,
-  value,
-  onChange,
-}: {
-  field: ConfigField;
-  value: unknown;
-  onChange: (v: unknown) => void;
-}) {
-  const base =
-    "w-full rounded-lg bg-white/[0.06] border border-white/10 text-white/90 text-xs px-3 py-2 outline-none focus:border-white/30 focus:bg-white/[0.09] placeholder:text-white/30 transition-colors";
-
-  if (field.kind === "toggle") {
-    return (
-      <label className="flex items-center justify-between gap-3 cursor-pointer">
-        <span className="text-xs text-white/70">{field.label}</span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={Boolean(value)}
-          onClick={() => onChange(!value)}
-          className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border transition-colors ${
-            value
-              ? "bg-blue-500 border-blue-400"
-              : "bg-white/10 border-white/20"
-          }`}
-        >
-          <span
-            className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform mt-[3px] ml-[3px] ${
-              value ? "translate-x-4" : "translate-x-0"
-            }`}
-          />
-        </button>
-      </label>
-    );
-  }
-
-  if (field.kind === "select") {
-    return (
-      <select
-        value={String(value ?? "")}
-        onChange={(e) => onChange(e.target.value)}
-        className={base + " appearance-none"}
-      >
-        {field.placeholder && (
-          <option value="" disabled>
-            {field.placeholder}
-          </option>
-        )}
-        {field.options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    );
-  }
-
-  if (field.kind === "number") {
-    return (
-      <input
-        type="number"
-        value={value == null ? "" : String(value)}
-        min={field.min}
-        max={field.max}
-        placeholder={field.placeholder}
-        onChange={(e) =>
-          onChange(e.target.value === "" ? undefined : Number(e.target.value))
-        }
-        className={base}
-      />
-    );
-  }
-
-  if (field.kind === "list") {
-    return (
-      <input
-        type="text"
-        value={Array.isArray(value) ? value.join(", ") : String(value ?? "")}
-        placeholder={field.placeholder ?? "Comma-separated values"}
-        onChange={(e) =>
-          onChange(e.target.value.split(",").map((s) => s.trim()).filter(Boolean))
-        }
-        className={base}
-      />
-    );
-  }
-
-  return (
-    <input
-      type="text"
-      value={String(value ?? "")}
-      placeholder={field.placeholder}
-      onChange={(e) => onChange(e.target.value)}
-      className={base}
-    />
-  );
-}
+import { getWidgetById } from "@/lib/widgets/registry";
+import { SIZE_LABELS, WIDGET_SIZES, type WidgetSize } from "@/lib/widgets/types";
 
 export default function WidgetDetail({
   widgetId,
+  state,
+  actions,
   onClose,
 }: {
   widgetId: string;
+  state: DashboardState | null;
+  actions: DashboardActions;
   onClose: () => void;
 }) {
-  const def = getWidgetById(widgetId);
-  const { state, actions } = useDashboard();
-
-  const allowedSizes = getAllowedSizes(widgetId);
-  const configFields = getConfigFields(widgetId);
-  const accent = def?.meta.accent ?? "#60a5fa";
-
-  const [selectedSize, setSelectedSize] = useState<WidgetSize>(
-    allowedSizes[0] ?? "medium"
+  const definition = getWidgetById(widgetId);
+  const [size, setSize] = useState<WidgetSize>(
+    definition?.meta.defaultSize ?? "small"
   );
-  const [cfg, setCfg] = useState<Record<string, unknown>>(
-    (def?.defaultConfig as Record<string, unknown>) ?? {}
+  const [config, setConfig] = useState<Record<string, unknown>>(
+    () => ({ ...(definition?.defaultConfig ?? {}) })
   );
-  const [display, setDisplay] = useState<unknown>(null);
-  const [status, setStatus] = useState<"idle" | "added" | "full">("idle");
-
+  const [added, setAdded] = useState(false);
   const backdropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const onKeyDown = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  useEffect(() => {
-    if (!def) return;
-    let cancelled = false;
-    def
-      .fetchData(cfg as never, { now: new Date() })
-      .then((data) => {
-        if (cancelled) return;
-        setDisplay(def.toDisplay ? def.toDisplay(data) : data);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [def, cfg]);
+  const cols = state?.preferences.gridCols ?? DEFAULT_COLS;
+  const rows = state?.preferences.gridRows ?? DEFAULT_ROWS;
+  const span = WIDGET_SIZES[size];
+  const spot = findFirstFit(
+    state?.instances.map((i) => i.position) ?? [],
+    span.w,
+    span.h,
+    cols,
+    rows
+  );
 
-  const installedCount =
+  const add = useCallback(() => {
+    if (!spot) return;
+    actions.addInstance(createInstance(widgetId, { size, position: spot, config }));
+    setAdded(true);
+    setTimeout(onClose, 900);
+  }, [spot, actions, widgetId, size, config, onClose]);
+
+  if (!definition) return null;
+  const { meta } = definition;
+  const installed =
     state?.instances.filter((i) => i.widgetId === widgetId).length ?? 0;
-
-  const canAdd = useCallback(() => {
-    if (!state) return true;
-    const span = WIDGET_SIZES[selectedSize];
-    const taken = state.instances.map((i) => i.position);
-    const cols = state.preferences.gridCols ?? COLS;
-    const rows = state.preferences.gridRows ?? ROWS;
-    return findFirstFit(taken, span.w, span.h, cols, rows) !== null;
-  }, [state, selectedSize]);
-
-  const handleAdd = useCallback(() => {
-    if (!state) return;
-    const span = WIDGET_SIZES[selectedSize];
-    const taken = state.instances.map((i) => i.position);
-    const cols = state.preferences.gridCols ?? COLS;
-    const rows = state.preferences.gridRows ?? ROWS;
-    const pos = findFirstFit(taken, span.w, span.h, cols, rows);
-    if (!pos) {
-      setStatus("full");
-      return;
-    }
-    const instance = createInstance(widgetId, {
-      size: selectedSize,
-      position: { ...pos, ...span },
-      config: cfg,
-    });
-    actions.addInstance(instance);
-    setStatus("added");
-    setTimeout(() => onClose(), 1200);
-  }, [state, selectedSize, cfg, widgetId, actions, onClose]);
-
-  if (!def) return null;
-
-  const fits = canAdd();
-  const Renderer = getRenderer(widgetId);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }}
       ref={backdropRef}
-      onClick={(e) => {
-        if (e.target === backdropRef.current) onClose();
-      }}
+      onPointerDown={(e) => e.target === backdropRef.current && onClose()}
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(12px)" }}
     >
-      <div className="animate-in relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#0d1120] border border-white/10 shadow-2xl flex flex-col">
-        {/* accent glow */}
-        <div
-          className="pointer-events-none absolute -top-16 -left-10 h-40 w-48 rounded-full blur-3xl opacity-30"
-          style={{ background: accent }}
-          aria-hidden
-        />
-        <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.05] via-transparent to-transparent" />
-
-        {/* Header */}
-        <div className="relative z-10 flex items-center gap-3 px-6 pt-6 pb-4 border-b border-white/[0.08]">
+      <div
+        role="dialog"
+        aria-label={meta.name}
+        className="animate-sheet-in hairline flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-[20px]"
+        style={{
+          background: "var(--elevated-solid)",
+          boxShadow: "var(--tile-shadow-lifted)",
+        }}
+      >
+        <header className="flex items-center gap-3 border-b border-separator px-5 py-4">
           <span
-            className="h-2.5 w-2.5 rounded-full shrink-0"
-            style={{ background: accent, boxShadow: `0 0 8px ${accent}` }}
-          />
-          <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold text-white leading-tight">
-              {def.meta.name}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+            style={{ background: `${meta.accent}1f`, color: meta.accent }}
+          >
+            <Icon name={meta.icon} size={19} strokeWidth={2} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-[17px] font-semibold tracking-tight">
+              {meta.name}
             </h2>
-            <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold mt-0.5">
-              {def.meta.category ?? "information"}
-            </p>
+            <p className="truncate text-[12.5px] text-secondary">{meta.tagline}</p>
           </div>
-          {installedCount > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 text-[11px] font-semibold text-emerald-400">
-              Installed ×{installedCount}
+          {installed > 0 && (
+            <span
+              className="shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold"
+              style={{
+                background: "color-mix(in srgb, var(--positive) 16%, transparent)",
+                color: "var(--positive)",
+              }}
+            >
+              {installed} added
             </span>
           )}
           <button
+            type="button"
             onClick={onClose}
-            className="ml-2 h-7 w-7 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors text-xs font-bold"
             aria-label="Close"
+            className="press focus-ring flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-fill text-secondary"
           >
-            ×
+            <Icon name="xmark" size={13} strokeWidth={2.4} />
           </button>
-        </div>
+        </header>
 
-        {/* Body */}
-        <div className="relative z-10 px-6 py-5 flex flex-col gap-6">
-          {/* Description */}
-          {(def.meta.description || def.meta.summary) && (
-            <div className="flex flex-col gap-1">
-              {def.meta.summary && (
-                <p className="text-sm text-white/80 leading-relaxed">
-                  {def.meta.summary}
-                </p>
-              )}
-              {def.meta.description && def.meta.description !== def.meta.summary && (
-                <p className="text-xs text-white/50 leading-relaxed">
-                  {def.meta.description}
-                </p>
-              )}
-            </div>
-          )}
+        <div className="flex flex-col gap-6 overflow-y-auto px-5 py-5">
+          <p className="text-[14px] leading-relaxed text-secondary">
+            {meta.description}
+          </p>
 
-          {/* Size previews */}
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold mb-3">
-              Choose size
-            </p>
-            <div className="flex flex-wrap gap-4 items-end">
-              {allowedSizes.map((sz) => {
-                const px = SIZE_PX[sz];
-                const active = selectedSize === sz;
-                return (
-                  <button
-                    key={sz}
-                    onClick={() => setSelectedSize(sz)}
-                    className={`relative rounded-xl overflow-hidden border transition-all flex-shrink-0 focus-visible:outline-none ${
-                      active
-                        ? "border-white/40 shadow-lg"
-                        : "border-white/10 hover:border-white/20"
-                    }`}
-                    style={{
-                      width: px.w,
-                      height: px.h,
-                      background: active
-                        ? `radial-gradient(circle at 20% 20%, ${accent}22, transparent 70%), rgba(255,255,255,0.06)`
-                        : "rgba(255,255,255,0.04)",
-                      boxShadow: active ? `0 0 20px ${accent}30` : undefined,
-                    }}
-                  >
-                    <div className="absolute inset-0 p-3 flex items-center justify-center pointer-events-none">
-                      <Renderer data={display} size={sz} />
-                    </div>
-                    <div
-                      className={`absolute bottom-1.5 left-0 right-0 flex justify-center`}
-                    >
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[9px] uppercase tracking-wider font-bold ${
-                          active
-                            ? "bg-white/20 text-white"
-                            : "bg-white/[0.08] text-white/50"
-                        }`}
-                      >
-                        {sz}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+          <div className="flex flex-col gap-3">
+            {meta.sizes.length > 1 && (
+              <Segmented
+                options={meta.sizes.map((s) => ({ value: s, label: SIZE_LABELS[s] }))}
+                value={size}
+                onChange={setSize}
+                size="sm"
+              />
+            )}
+            <div className="flex min-h-[190px] items-center justify-center rounded-[16px] bg-fill p-5">
+              <TilePreview widgetId={widgetId} size={size} cell={124} config={config} />
             </div>
           </div>
 
-          {/* Config fields */}
-          {configFields.length > 0 && (
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold mb-3">
-                Configuration
-              </p>
-              <div className="flex flex-col gap-3">
-                {configFields.map((field) => (
-                  <div key={field.key} className="flex flex-col gap-1.5">
-                    {field.kind !== "toggle" && (
-                      <label className="text-xs text-white/60 font-medium">
-                        {field.label}
-                      </label>
-                    )}
-                    <ConfigControl
-                      field={field}
-                      value={cfg[field.key]}
-                      onChange={(v) =>
-                        setCfg((prev) => ({ ...prev, [field.key]: v }))
-                      }
-                    />
-                    {field.help && (
-                      <p className="text-[10px] text-white/30">{field.help}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
+          {(definition.configFields?.length ?? 0) > 0 && (
+            <div className="flex flex-col gap-3">
+              <h3 className="text-[13px] font-semibold text-secondary">Settings</h3>
+              <ConfigForm
+                fields={definition.configFields ?? []}
+                config={config}
+                onChange={(key, value) =>
+                  setConfig((prev) => ({ ...prev, [key]: value }))
+                }
+              />
             </div>
           )}
 
-          {/* Full warning */}
-          {!fits && status !== "added" && (
-            <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-4 py-3">
-              <p className="text-xs text-amber-300">
-                Your dashboard is full — remove a widget or expand the grid first.
-              </p>
-            </div>
-          )}
+          <div className="flex flex-wrap gap-1.5">
+            {meta.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-fill px-2.5 py-1 text-[11px] font-medium text-secondary"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
 
-          {/* Success */}
-          {status === "added" && (
-            <div className="animate-in rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3">
-              <p className="text-xs text-emerald-300 font-medium">
-                Added to your dashboard!
-              </p>
-            </div>
+          {!spot && (
+            <p
+              className="rounded-control px-3.5 py-2.5 text-[12.5px]"
+              style={{
+                background: "color-mix(in srgb, var(--warning) 14%, transparent)",
+                color: "var(--warning)",
+              }}
+            >
+              Your dashboard is full at this size. Remove a widget or pick a
+              smaller one.
+            </p>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="relative z-10 flex items-center justify-between gap-3 px-6 py-4 border-t border-white/[0.08]">
+        <footer className="flex items-center justify-end gap-2 border-t border-separator px-5 py-4">
           <button
+            type="button"
             onClick={onClose}
-            className="text-xs text-white/40 hover:text-white/70 transition-colors"
+            className="press focus-ring rounded-full px-4 py-2 text-[14px] font-medium text-secondary"
           >
             Cancel
           </button>
-          <div className="flex items-center gap-2">
-            {installedCount > 0 && status !== "added" && (
-              <button
-                onClick={handleAdd}
-                disabled={!fits}
-                className="rounded-lg border border-white/15 bg-white/[0.08] hover:bg-white/[0.12] px-4 py-2 text-xs font-semibold text-white/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Add another
-              </button>
-            )}
-            <button
-              onClick={handleAdd}
-              disabled={!fits || status === "added"}
-              className="rounded-lg px-5 py-2 text-xs font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                background: fits
-                  ? `linear-gradient(135deg, ${accent}cc, ${accent}88)`
-                  : undefined,
-                backgroundColor: fits ? undefined : "rgba(255,255,255,0.1)",
-                boxShadow: fits ? `0 4px 16px ${accent}40` : undefined,
-              }}
-            >
-              {status === "added" ? "Added!" : "Add to Dashboard"}
-            </button>
-          </div>
-        </div>
+          <button
+            type="button"
+            onClick={add}
+            disabled={!spot || added}
+            className="press focus-ring flex items-center gap-1.5 rounded-full px-5 py-2 text-[14px] font-semibold text-white disabled:opacity-40"
+            style={{ background: added ? "var(--positive)" : "var(--accent)" }}
+          >
+            <Icon name={added ? "check" : "plus"} size={15} strokeWidth={2.4} />
+            {added ? "Added" : installed > 0 ? "Add another" : "Add widget"}
+          </button>
+        </footer>
       </div>
     </div>
   );

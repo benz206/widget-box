@@ -1,123 +1,279 @@
 @import "tailwindcss";
 
-:root {
-  --background: #060814;
-  --foreground: #f5f7ff;
+@custom-variant dark (&:where([data-appearance="dark"], [data-appearance="dark"] *));
+
+/*
+ * Semantic colors modelled on Apple's system palette: text is expressed as
+ * label levels rather than opacities-on-white, surfaces as background levels,
+ * and controls as fills. Components reference the semantic name only, so an
+ * appearance switch never needs a `dark:` variant.
+ */
+:root,
+:root[data-appearance="light"] {
+  color-scheme: light;
+
+  --canvas: #f2f2f7;
+  --canvas-tint-a: rgba(10, 132, 255, 0.1);
+  --canvas-tint-b: rgba(191, 90, 242, 0.09);
+
+  --elevated: rgba(255, 255, 255, 0.72);
+  --elevated-solid: #ffffff;
+  --elevated-hover: rgba(255, 255, 255, 0.88);
+
+  --label: rgba(0, 0, 0, 0.92);
+  --label-secondary: rgba(60, 60, 67, 0.6);
+  --label-tertiary: rgba(60, 60, 67, 0.36);
+  --label-quaternary: rgba(60, 60, 67, 0.22);
+
+  --fill: rgba(120, 120, 128, 0.12);
+  --fill-secondary: rgba(120, 120, 128, 0.16);
+  --fill-tertiary: rgba(120, 120, 128, 0.24);
+
+  --separator: rgba(60, 60, 67, 0.16);
+
+  --accent: #007aff;
+  --positive: #34c759;
+  --negative: #ff3b30;
+  --warning: #ff9f0a;
+
+  --tile-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --tile-shadow-lifted: 0 2px 8px rgba(0, 0, 0, 0.08), 0 24px 56px rgba(0, 0, 0, 0.16);
+  --tile-highlight: rgba(255, 255, 255, 0.7);
+}
+
+:root[data-appearance="dark"] {
+  color-scheme: dark;
+
+  --canvas: #000000;
+  --canvas-tint-a: rgba(10, 132, 255, 0.16);
+  --canvas-tint-b: rgba(191, 90, 242, 0.14);
+
+  --elevated: rgba(28, 28, 30, 0.72);
+  --elevated-solid: #1c1c1e;
+  --elevated-hover: rgba(44, 44, 46, 0.82);
+
+  --label: rgba(255, 255, 255, 0.96);
+  --label-secondary: rgba(235, 235, 245, 0.6);
+  --label-tertiary: rgba(235, 235, 245, 0.34);
+  --label-quaternary: rgba(235, 235, 245, 0.2);
+
+  --fill: rgba(120, 120, 128, 0.24);
+  --fill-secondary: rgba(120, 120, 128, 0.32);
+  --fill-tertiary: rgba(120, 120, 128, 0.4);
+
+  --separator: rgba(84, 84, 88, 0.6);
+
+  --accent: #0a84ff;
+  --positive: #30d158;
+  --negative: #ff453a;
+  --warning: #ffd60a;
+
+  --tile-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+  --tile-shadow-lifted: 0 2px 8px rgba(0, 0, 0, 0.5), 0 24px 56px rgba(0, 0, 0, 0.55);
+  --tile-highlight: rgba(255, 255, 255, 0.08);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas: var(--canvas);
+  --color-elevated: var(--elevated);
+  --color-elevated-solid: var(--elevated-solid);
+  --color-elevated-hover: var(--elevated-hover);
+
+  --color-label: var(--label);
+  --color-secondary: var(--label-secondary);
+  --color-tertiary: var(--label-tertiary);
+  --color-quaternary: var(--label-quaternary);
+
+  --color-fill: var(--fill);
+  --color-fill-secondary: var(--fill-secondary);
+  --color-fill-tertiary: var(--fill-tertiary);
+
+  --color-separator: var(--separator);
+  --color-accent: var(--accent);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-warning: var(--warning);
+
+  --radius-tile: 22px;
+  --radius-card: 16px;
+  --radius-control: 10px;
+
+  /* iOS sheet/spring curves — fast out, long settle. */
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-ios: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Helvetica Neue", "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+}
+
+html {
+  background: var(--canvas);
 }
 
 body {
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100svh;
+  color: var(--label);
+  font-family: var(--font-sans);
   background:
-    radial-gradient(1200px 700px at 10% -10%, rgba(255, 105, 180, 0.10), transparent 60%),
-    radial-gradient(1000px 600px at 110% 0%, rgba(100, 181, 246, 0.12), transparent 50%),
-    radial-gradient(900px 600px at 50% 120%, rgba(167, 139, 250, 0.10), transparent 60%),
-    linear-gradient(180deg, #060814 0%, #0a0e1f 40%, #060814 100%);
+    radial-gradient(1100px 620px at 8% -12%, var(--canvas-tint-a), transparent 62%),
+    radial-gradient(900px 560px at 104% 4%, var(--canvas-tint-b), transparent 58%),
+    var(--canvas);
   background-attachment: fixed;
-  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+  letter-spacing: -0.01em;
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0 0 0 0 0 0.02 0'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: 0.25;
+/* Apple sets tighter tracking as type gets larger. */
+h1, h2 { letter-spacing: -0.024em; }
+h3 { letter-spacing: -0.018em; }
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
 }
 
-/* 5x5 widget grid */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--fill-secondary);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--fill-tertiary); }
+
+/* ── Materials ─────────────────────────────────────────────────────────── */
+
+.material {
+  background: var(--elevated);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+}
+
+/* Real squircles where the browser can draw them, plain radii elsewhere. */
+@supports (corner-shape: squircle) {
+  .squircle { corner-shape: squircle; border-radius: 34%; }
+  .rounded-tile.squircle { border-radius: 30px; }
+}
+
+.hairline { border: 1px solid var(--separator); }
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Buttons dip under the finger, the way iOS controls do. */
+.press {
+  transition: transform 200ms var(--ease-out-ios), background-color 160ms linear,
+    color 160ms linear, opacity 160ms linear;
+}
+.press:active { transform: scale(0.96); }
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* ── Widget grid ───────────────────────────────────────────────────────── */
+
 .widget-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(5, minmax(110px, 1fr));
-  gap: 1rem;
-  max-width: 900px;
+  grid-template-columns: repeat(var(--cols, 6), minmax(0, 1fr));
+  grid-auto-rows: var(--cell, 150px);
+  gap: var(--grid-gap, 16px);
   margin: 0 auto;
+  width: 100%;
 }
 
 .widget-grid > * {
-  min-height: 0;
   min-width: 0;
+  min-height: 0;
 }
 
-@media (min-width: 768px) {
+.grid-item {
+  grid-column: var(--gx) / span var(--gw);
+  grid-row: var(--gy) / span var(--gh);
+}
+
+/* Below the breakpoint the grid reflows: spans are kept, coordinates dropped. */
+@media (max-width: 719px) {
   .widget-grid {
-    gap: 1.25rem;
-    grid-template-rows: repeat(5, minmax(130px, 1fr));
-    max-width: 1100px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+  }
+  .grid-item {
+    grid-column: span min(var(--gw), 2);
+    grid-row: span var(--gh);
   }
 }
 
-@media (min-width: 1024px) {
-  .widget-grid {
-    gap: 1.5rem;
-    grid-template-rows: repeat(5, 150px);
-    max-width: 1240px;
-  }
+/* Widgets that paint edge to edge (a gradient, artwork) put a .tile-bleed
+   behind their content; it cancels the frame's padding without hard-coding it. */
+.tile-content {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+.tile-bleed {
+  position: absolute;
+  inset: calc(-1 * var(--tile-pad, 16px));
+  border-radius: var(--radius-tile);
 }
 
-html { scroll-behavior: smooth; }
-
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
-
-::selection { background: rgba(99, 102, 241, 0.35); color: inherit; }
-
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-in { animation: fade-in 0.25s ease-out; }
-.fade-in { animation: fade-in 0.2s ease-out; }
-
-/* dragging */
-.widget-dragging {
-  z-index: 1000;
-}
-.widget-dragging > section {
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.15) !important;
-  transform: scale(1.03);
-  transition: transform 120ms ease;
+.grid-cell-guide {
+  border-radius: var(--radius-tile);
+  border: 1px dashed var(--separator);
+  opacity: 0.55;
 }
 
 .drop-preview {
-  position: relative;
-  border-radius: 1rem;
-  background: rgba(99, 102, 241, 0.15);
-  border: 2px dashed rgba(129, 140, 248, 0.7);
-  z-index: 1;
-  pointer-events: none;
+  border-radius: var(--radius-tile);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);
+  transition: all 220ms var(--ease-ios);
 }
-.drop-preview::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(45deg, transparent 30%, rgba(129, 140, 248, 0.15) 50%, transparent 70%);
-  animation: shimmer 1.6s linear infinite;
-}
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-.drop-preview--invalid {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.85);
-}
-.drop-preview--invalid::after { display: none; }
 
-.tabular-nums { font-variant-numeric: tabular-nums; }
+.drop-preview--invalid {
+  background: color-mix(in srgb, var(--negative) 12%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--negative) 55%, transparent);
+}
+
+/* ── Motion ────────────────────────────────────────────────────────────── */
+
+@keyframes tile-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-tile-in { animation: tile-in 320ms var(--ease-out-ios) backwards; }
+
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-sheet-in { animation: sheet-in 260ms var(--ease-out-ios); }
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in { animation: fade-in 200ms linear; }
+
+/* iOS home-screen jiggle. Two offset phases so neighbours fall out of sync. */
+@keyframes jiggle-a {
+  0%, 100% { transform: rotate(-0.55deg); }
+  50% { transform: rotate(0.55deg); }
+}
+@keyframes jiggle-b {
+  0%, 100% { transform: rotate(0.55deg); }
+  50% { transform: rotate(-0.55deg); }
+}
+.jiggle { animation: jiggle-a 260ms ease-in-out infinite; }
+.jiggle:nth-child(even) { animation-name: jiggle-b; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

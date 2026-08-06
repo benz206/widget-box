@@ -1,16 +1,21 @@
-import { ConfigField, WidgetCategory, WidgetDefinition, WidgetInstanceConfig, WidgetSize } from "./types";
+import type {
+  ConfigField,
+  WidgetCategory,
+  WidgetDefinition,
+  WidgetSize,
+} from "./types";
 
-const registry = new Map<string, WidgetDefinition<any, any>>();
+const registry = new Map<string, WidgetDefinition>();
 
-export function registerWidget<Cfg extends WidgetInstanceConfig, Data>(def: WidgetDefinition<Cfg, Data>): void {
-  registry.set(def.meta.id, def as unknown as WidgetDefinition<any, any>);
+export function registerWidget(def: WidgetDefinition): void {
+  registry.set(def.meta.id, def);
 }
 
-export function getWidgetById(id: string): WidgetDefinition<any, any> | undefined {
+export function getWidgetById(id: string): WidgetDefinition | undefined {
   return registry.get(id);
 }
 
-export function listWidgets(): WidgetDefinition<any, any>[] {
+export function listWidgets(): WidgetDefinition[] {
   return Array.from(registry.values());
 }
 
@@ -19,25 +24,46 @@ export function getConfigFields(id: string): ConfigField[] {
 }
 
 export function getAccent(id: string): string {
-  return registry.get(id)?.meta.accent ?? "#60a5fa";
+  return registry.get(id)?.meta.accent ?? "#007aff";
 }
 
 export function getAllowedSizes(id: string): WidgetSize[] {
-  return registry.get(id)?.meta.allowedSizes ?? ["small", "medium", "large"];
+  return registry.get(id)?.meta.sizes ?? ["small", "medium", "large"];
 }
 
-export function listByCategory(): Record<WidgetCategory, WidgetDefinition<any, any>[]> {
-  const result: Record<WidgetCategory, WidgetDefinition<any, any>[]> = {
-    productivity: [],
-    information: [],
-    lifestyle: [],
-    finance: [],
-    fun: [],
-    ambient: [],
-  };
-  for (const def of registry.values()) {
-    const cat: WidgetCategory = def.meta.category ?? "information";
-    result[cat].push(def);
-  }
-  return result;
+/** Instance config merged over the widget's declared defaults. */
+export function resolveConfig(
+  id: string,
+  config: Record<string, unknown>
+): Record<string, unknown> {
+  return { ...(registry.get(id)?.defaultConfig ?? {}), ...config };
 }
+
+export function listByCategory(): [WidgetCategory, WidgetDefinition[]][] {
+  const order: WidgetCategory[] = [
+    "productivity",
+    "information",
+    "finance",
+    "lifestyle",
+    "ambient",
+    "fun",
+  ];
+  return order
+    .map(
+      (cat) =>
+        [cat, listWidgets().filter((d) => d.meta.category === cat)] as [
+          WidgetCategory,
+          WidgetDefinition[]
+        ]
+    )
+    .filter(([, defs]) => defs.length > 0);
+}
+
+export const CATEGORY_LABELS: Record<WidgetCategory, string> = {
+  productivity: "Productivity",
+  information: "Information",
+  lifestyle: "Lifestyle",
+  finance: "Finance",
+  fun: "Fun",
+  ambient: "Ambient",
+};
