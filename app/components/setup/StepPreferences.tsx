@@ -1,114 +1,110 @@
 "use client";
 
+import Segmented from "@/app/components/ui/Segmented";
+
 export type Prefs = {
   displayName: string;
   timezone: string;
   hour12: boolean;
-  defaultCity: string;
+  weatherCity: string;
   units: "c" | "f";
 };
 
-type StepPreferencesProps = {
+const inputClass =
+  "focus-ring w-full rounded-control bg-fill px-3.5 py-2.5 text-[14px] outline-none placeholder:text-tertiary";
+
+/** Widgets whose defaults are seeded from the location preference. */
+const LOCATION_WIDGETS = ["system.weather", "system.astronomy"];
+
+export default function StepPreferences({
+  prefs,
+  onChange,
+  selected,
+}: {
   prefs: Prefs;
   onChange: (patch: Partial<Prefs>) => void;
-  selectedWidgetIds: string[];
-};
-
-const inputCls =
-  "w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-blue-400/60 focus:border-blue-400/60 transition-colors";
-
-const segmentBase =
-  "px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer";
-const segmentActive = "bg-white/20 text-white";
-const segmentInactive = "text-white/40 hover:text-white/70";
-
-const hasWeather = (ids: string[]) => ids.includes("system.weather");
-
-export default function StepPreferences({ prefs, onChange, selectedWidgetIds }: StepPreferencesProps) {
-  const weatherVisible = hasWeather(selectedWidgetIds);
+  selected: string[];
+}) {
+  const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const needsLocation = selected.some((id) => LOCATION_WIDGETS.includes(id));
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-xl font-bold text-white mb-1">A few preferences</h2>
-        <p className="text-white/50 text-sm">Personalize your experience. Everything can be changed later.</p>
+        <h2 className="text-[22px] font-semibold tracking-tight">A few details</h2>
+        <p className="mt-1 text-[14px] text-secondary">
+          These seed your widgets' settings. Change any of them later.
+        </p>
       </div>
 
       <div className="flex flex-col gap-5">
-        {/* Display name */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-white/60 uppercase tracking-wider">
-            Display name <span className="text-white/30 normal-case">(optional)</span>
-          </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium text-secondary">
+            Your name <span className="text-tertiary">(optional)</span>
+          </span>
           <input
             type="text"
-            className={inputCls}
-            placeholder="e.g. Alex"
+            className={inputClass}
+            placeholder="Alex"
             value={prefs.displayName}
             onChange={(e) => onChange({ displayName: e.target.value })}
           />
-        </div>
+        </label>
 
-        {/* Timezone */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-white/60 uppercase tracking-wider">Timezone</label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium text-secondary">Timezone</span>
           <input
             type="text"
-            className={inputCls}
-            placeholder={Intl.DateTimeFormat().resolvedOptions().timeZone}
+            className={inputClass}
+            placeholder={detected}
             value={prefs.timezone}
             onChange={(e) => onChange({ timezone: e.target.value })}
           />
-          <p className="text-[10px] text-white/30">
-            Detected: {Intl.DateTimeFormat().resolvedOptions().timeZone}
-          </p>
-        </div>
+          <span className="text-[11.5px] text-tertiary">Detected: {detected}</span>
+        </label>
 
-        {/* Hour format */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-white/60 uppercase tracking-wider">Hour format</label>
-          <div className="inline-flex items-center rounded-lg bg-white/[0.06] border border-white/10 p-1 gap-0.5 self-start">
-            {([true, false] as const).map((h12) => (
-              <button
-                key={String(h12)}
-                type="button"
-                onClick={() => onChange({ hour12: h12 })}
-                className={[segmentBase, prefs.hour12 === h12 ? segmentActive : segmentInactive].join(" ")}
-              >
-                {h12 ? "12-hour" : "24-hour"}
-              </button>
-            ))}
-          </div>
+          <span className="text-[13px] font-medium text-secondary">Clock</span>
+          <Segmented
+            options={[
+              { value: "12", label: "12-hour" },
+              { value: "24", label: "24-hour" },
+            ]}
+            value={prefs.hour12 ? "12" : "24"}
+            onChange={(v) => onChange({ hour12: v === "12" })}
+            className="self-start"
+          />
         </div>
 
-        {/* Weather fields — conditional */}
-        {weatherVisible && (
+        {needsLocation && (
           <>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-white/60 uppercase tracking-wider">Default city for weather</label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[13px] font-medium text-secondary">City</span>
               <input
                 type="text"
-                className={inputCls}
+                className={inputClass}
                 placeholder="San Francisco"
-                value={prefs.defaultCity}
-                onChange={(e) => onChange({ defaultCity: e.target.value })}
+                value={prefs.weatherCity}
+                onChange={(e) => onChange({ weatherCity: e.target.value })}
               />
-            </div>
+              <span className="text-[11.5px] text-tertiary">
+                Used for the forecast and for sunrise and sunset times.
+              </span>
+            </label>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-white/60 uppercase tracking-wider">Temperature units</label>
-              <div className="inline-flex items-center rounded-lg bg-white/[0.06] border border-white/10 p-1 gap-0.5 self-start">
-                {(["c", "f"] as const).map((unit) => (
-                  <button
-                    key={unit}
-                    type="button"
-                    onClick={() => onChange({ units: unit })}
-                    className={[segmentBase, prefs.units === unit ? segmentActive : segmentInactive].join(" ")}
-                  >
-                    {unit === "c" ? "°C" : "°F"}
-                  </button>
-                ))}
-              </div>
+              <span className="text-[13px] font-medium text-secondary">
+                Temperature
+              </span>
+              <Segmented
+                options={[
+                  { value: "c", label: "Celsius" },
+                  { value: "f", label: "Fahrenheit" },
+                ]}
+                value={prefs.units}
+                onChange={(v) => onChange({ units: v })}
+                className="self-start"
+              />
             </div>
           </>
         )}
