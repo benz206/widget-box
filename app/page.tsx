@@ -331,7 +331,7 @@ export default function Dashboard() {
                   <span
                     key={i}
                     aria-hidden
-                    className="grid-cell-guide"
+                    className="grid-item grid-cell-guide"
                     style={
                       {
                         "--gx": (i % cols) + 1,

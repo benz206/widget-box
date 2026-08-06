@@ -200,9 +200,13 @@ h3 { letter-spacing: -0.018em; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-auto-flow: row dense;
   }
+  /* Spans are never wider than 2, so they still fit the narrow grid. */
   .grid-item {
-    grid-column: span min(var(--gw), 2);
+    grid-column: span var(--gw);
     grid-row: span var(--gh);
+  }
+  .grid-cell-guide {
+    display: none;
   }
 }
 
