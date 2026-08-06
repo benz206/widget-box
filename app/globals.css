@@ -151,10 +151,11 @@ h3 { letter-spacing: -0.018em; }
   backdrop-filter: blur(28px) saturate(180%);
 }
 
-/* Real squircles where the browser can draw them, plain radii elsewhere. */
+/* Real squircles where the browser can draw them, plain radii elsewhere.
+   A squircle reads tighter than a circular corner, so the radius grows. */
 @supports (corner-shape: squircle) {
-  .squircle { corner-shape: squircle; border-radius: 34%; }
-  .rounded-tile.squircle { border-radius: 30px; }
+  .squircle { corner-shape: squircle; }
+  .rounded-tile.squircle { border-radius: 28px; }
 }
 
 .hairline { border: 1px solid var(--separator); }

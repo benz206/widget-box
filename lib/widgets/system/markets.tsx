@@ -35,7 +35,7 @@ function MarketsView({ size, config }: WidgetViewProps) {
     return (
       <div className="flex h-full w-full flex-col">
         <WidgetHeader icon="chart" label="Markets" accent={ACCENT} />
-        <WidgetMessage>Add some symbols in this widget's settings.</WidgetMessage>
+        <WidgetMessage>Add symbols in settings.</WidgetMessage>
       </div>
     );
   }

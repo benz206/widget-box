@@ -24,7 +24,7 @@ function CountdownView({ size, config }: WidgetViewProps) {
     return (
       <div className="flex h-full w-full flex-col">
         <WidgetHeader icon="flag" label={label} accent={ACCENT} />
-        <WidgetMessage>Pick a date in this widget's settings.</WidgetMessage>
+        <WidgetMessage>Choose a date in settings.</WidgetMessage>
       </div>
     );
   }

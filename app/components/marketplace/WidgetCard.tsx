@@ -20,7 +20,7 @@ export default function WidgetCard({
     <button
       type="button"
       onClick={onSelect}
-      className="press focus-ring material hairline group flex flex-col gap-3 rounded-card p-4 text-left"
+      className="press focus-ring material hairline flex flex-col gap-3 rounded-card p-4 text-left"
       style={{ boxShadow: "var(--tile-shadow)" }}
     >
       <div className="flex h-[170px] items-center justify-center overflow-hidden rounded-[14px] bg-fill">
