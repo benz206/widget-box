@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Widget Box
 
-## Getting Started
-
-First, run the development server:
+A personal dashboard of small, glanceable widgets — the time, the weather, a
+focus timer, a note — arranged on a grid you rearrange yourself.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open <http://localhost:3000>.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How it works
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+A widget is a single client component that owns its own data:
 
-## Learn More
+```ts
+export const clockWidget: WidgetDefinition = {
+  meta: { id: "system.clock", name: "Clock", sizes: [...], ... },
+  defaultConfig: { hour12: true },
+  configFields: [{ kind: "toggle", key: "hour12", label: "12-hour time" }],
+  View: ClockView,
+};
+```
 
-To learn more about Next.js, take a look at the following resources:
+- `meta` drives the widget library listing, the icon, and the allowed sizes.
+- `configFields` are rendered into settings forms automatically — declare a
+  field and the settings popover and the add-widget sheet both pick it up.
+- `View` receives `{ instanceId, size, config }` and renders the tile's
+  interior. The frame, padding, drag handling, and edit affordances are
+  supplied around it.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Register new widgets in `lib/widgets/system/index.ts`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Widgets that hold state across reloads — a running timer, a note, a pet — use
+`useWidgetState(instanceId, key, initial)`, which is scoped per instance and
+cleaned up when that instance is removed.
 
-## Deploy on Vercel
+### Layout
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Grid spans follow iOS proportions: `small` is 1×1, `medium` is 2×1, `large` is
+2×2, on a six-column square grid. Below 720px the grid reflows to two columns
+and drag is disabled, since coordinates stop meaning anything there.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The dashboard lives in `localStorage` under `widget-box:dashboard:v1`. It is
+versioned and migrated on read, so changing the size model does not strand an
+existing layout.
+
+### Server routes
+
+Only widgets that genuinely need a server have one:
+
+| Route | Used by | Upstream |
+| --- | --- | --- |
+| `/api/weather?q=` | Weather, Sky | Open-Meteo forecast + geocoding, no key needed |
+| `/api/markets?symbols=` | Markets | Yahoo Finance chart endpoint |
+
+Both cache upstream responses and degrade to a readable message inside the tile
+rather than to an empty box.
+
+## Appearance
+
+Light and dark are both first-class. Colours are semantic tokens (`--label`,
+`--fill`, `--separator`, …) defined in `app/globals.css` rather than
+per-component overrides, so a component almost never needs a `dark:` variant.
+The appearance follows the OS unless overridden, and resolves before first
+paint.
+
+## Accounts
+
+Sign-in is optional and unused by the dashboard — the layout is local to the
+browser. NextAuth with a credentials provider and a SQLite/Prisma user table
+sits behind `/login` if you want it:
+
+```bash
+pnpm exec prisma migrate dev
+pnpm seed   # demo@widget.box / password123
+```
+
+`DATABASE_URL` is resolved relative to `prisma/schema.prisma`, so its current
+value puts the database at `prisma/prisma/dev.db`.

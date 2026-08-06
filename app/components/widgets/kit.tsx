@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Icon, { type IconName } from "@/app/components/ui/Icon";
 import type { WeatherKind } from "@/lib/weather-codes";
 
@@ -77,35 +77,25 @@ export function useRemote<T>(url: string | null, refreshMs?: number): Remote<T> 
   return state;
 }
 
-/** Latest value in a ref — for intervals that must not restart on every render. */
-export function useLatest<T>(value: T) {
-  const ref = useRef(value);
-  ref.current = value;
-  return ref;
-}
-
 // ── Layout ─────────────────────────────────────────────────────────────────
 
 export function WidgetHeader({
   icon,
   label,
   accent,
-  trailing,
 }: {
   icon: IconName;
   label: string;
   accent?: string;
-  trailing?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-1.5 min-w-0">
+    <div className="flex min-w-0 items-center gap-1.5">
       <span style={{ color: accent }} className="shrink-0">
         <Icon name={icon} size={13} strokeWidth={2} />
       </span>
-      <span className="text-[11px] font-semibold text-secondary truncate">
+      <span className="truncate text-[11px] font-semibold text-secondary">
         {label}
       </span>
-      {trailing !== undefined && <span className="ml-auto shrink-0">{trailing}</span>}
     </div>
   );
 }
