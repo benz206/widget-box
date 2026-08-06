@@ -34,7 +34,7 @@ function WeatherView({ size, config }: WidgetViewProps) {
     return (
       <div className="flex h-full w-full flex-col">
         <WidgetHeader icon="weather" label="Weather" accent={ACCENT} />
-        <WidgetMessage>Set a city in this widget's settings.</WidgetMessage>
+        <WidgetMessage>Set a city in settings.</WidgetMessage>
       </div>
     );
   }

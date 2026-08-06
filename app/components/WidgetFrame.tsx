@@ -61,7 +61,7 @@ export default function WidgetFrame({
     <div
       ref={setNodeRef}
       className={[
-        "grid-item group relative",
+        "grid-item relative",
         editMode && !isDragging && "jiggle",
         draggable && "cursor-grab touch-none active:cursor-grabbing",
         isDragging && "z-50",
@@ -103,12 +103,10 @@ export default function WidgetFrame({
             label="Widget settings"
             icon="gear"
             className="-right-1.5 -top-1.5"
-            onClick={(e) =>
-              onOpenSettings({
-                x: e.currentTarget.getBoundingClientRect().right,
-                y: e.currentTarget.getBoundingClientRect().bottom,
-              })
-            }
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              onOpenSettings({ x: rect.right, y: rect.bottom });
+            }}
           />
         </>
       )}
