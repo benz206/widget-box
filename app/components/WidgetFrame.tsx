@@ -82,6 +82,14 @@ export default function WidgetFrame({
       }
       {...(draggable ? listeners : {})}
       {...(draggable ? attributes : {})}
+      onContextMenu={(e) => {
+        // Leave the native menu alone over anything the widget made editable.
+        if ((e.target as HTMLElement).closest("input, textarea, select, a, button")) {
+          return;
+        }
+        e.preventDefault();
+        onOpenSettings({ x: e.clientX, y: e.clientY });
+      }}
     >
       {editMode && (
         <>
