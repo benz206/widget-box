@@ -11,7 +11,7 @@ import {
   DragEndEvent,
 } from "@dnd-kit/core";
 import { useDashboard, createInstance, findFirstFit, rectsOverlap } from "@/lib/storage/dashboard";
-import { getWidgetById, getAccent, getConfigFields, getAllowedSizes } from "@/lib/widgets/registry";
+import { getWidgetById } from "@/lib/widgets/registry";
 import { registerSystemWidgets } from "@/lib/widgets/system";
 import { WIDGET_SIZES, WidgetSize } from "@/lib/widgets/types";
 import WidgetTile from "./components/WidgetTile";
