@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import AppHeader from "@/app/components/AppHeader";
 import Icon from "@/app/components/ui/Icon";
@@ -51,27 +50,16 @@ export default function MarketplacePage() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader subtitle="Widgets">
-        <Link
-          href="/"
-          className="press focus-ring flex h-8 items-center gap-1.5 rounded-full bg-fill px-3 text-[13px] font-medium"
-        >
-          <Icon name="chevronLeft" size={14} strokeWidth={2.2} />
-          Dashboard
-        </Link>
-      </AppHeader>
+      <AppHeader subtitle="Widgets" />
 
-      <main className="mx-auto max-w-[1160px] px-5 py-8">
-        <div className="mb-7">
-          <h1 className="text-[30px] font-semibold tracking-tight">Widgets</h1>
-          <p className="mt-1.5 text-[15px] text-secondary">
-            {listWidgets().length} widgets, all of them live. Pick a size, adjust
-            the settings, and drop it on your dashboard.
-          </p>
+      <main className="gallery-main">
+        <div className="gallery-intro">
+          <div><span className="eyebrow">THE WIDGET COLLECTION</span><h1>Little things.<br />Endless possibilities.</h1></div>
+          <p>{listWidgets().length} thoughtfully crafted widgets for your everyday. Find your favorites. Make them yours.</p>
         </div>
 
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1 sm:max-w-xs">
+        <div className="gallery-toolbar">
+          <div className="relative w-full sm:w-60">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-tertiary">
               <Icon name="search" size={15} />
             </span>
@@ -79,8 +67,9 @@ export default function MarketplacePage() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search"
-              className="focus-ring h-9 w-full rounded-full bg-fill pl-9 pr-4 text-[14px] outline-none placeholder:text-tertiary"
+              placeholder="Find your next widget"
+              aria-label="Search widgets"
+              className="focus-ring material h-10 w-full rounded-full pl-9 pr-4 text-[12px] outline-none placeholder:text-tertiary"
             />
           </div>
 
@@ -92,10 +81,11 @@ export default function MarketplacePage() {
                   key={option}
                   type="button"
                   onClick={() => setCategory(option)}
+                  aria-pressed={active}
                   className="press focus-ring rounded-full px-3 py-1.5 text-[12.5px] font-medium"
                   style={
                     active
-                      ? { background: "var(--accent)", color: "#fff" }
+                      ? { background: "var(--label)", color: "var(--canvas)" }
                       : { background: "var(--fill)", color: "var(--label-secondary)" }
                   }
                 >
@@ -107,7 +97,7 @@ export default function MarketplacePage() {
         </div>
 
         {results.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {results.map((definition) => (
               <WidgetCard
                 key={definition.meta.id}

@@ -60,16 +60,14 @@ rather than to an empty box.
 
 ## Backdrop
 
-The dashboard can cycle slowly through nature photos from Unsplash behind the
-widgets. It needs a free Unsplash API key:
-
-```bash
-echo 'UNSPLASH_ACCESS_KEY=your_key' >> .env
-```
-
-Get one at <https://unsplash.com/developers>. Without the key the app keeps its
-plain gradient background. The photo icon in the header turns the backdrop on
-and off per browser.
+The dashboard cycles through 18 curated landscapes from [Lorem Picsum](https://picsum.photos),
+with a four-second crossfade every minute by default. No API key is needed. Stable image URLs
+allow browser/CDN caching, and the next photo is preloaded and decoded before it appears.
+Failed loads preserve the current image and retry with the next landscape on the next tick.
+Rotation pauses while the tab is hidden; reduced-motion preferences disable the fade and drift.
+The background is always on. The photo icon opens timing settings: change photos every
+30 seconds, 1 minute, 2 minutes, or 5 minutes, with a 1, 2, 4, or 8-second crossfade.
+Timing preferences persist per browser; there is no photo picker or off switch.
 
 ## Appearance
 

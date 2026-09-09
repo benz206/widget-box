@@ -13,6 +13,7 @@ import {
 } from "@dnd-kit/core";
 import AppHeader from "./components/AppHeader";
 import WidgetTile from "./components/WidgetTile";
+import TilePreview from "./components/widgets/TilePreview";
 import Icon from "./components/ui/Icon";
 import {
   createInstance,
@@ -79,6 +80,27 @@ function useCanDrag(): boolean {
     return () => media.removeEventListener("change", sync);
   }, []);
   return canDrag;
+}
+
+function DashboardGreeting({ name, timezone }: { name?: string; timezone?: string }) {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+  const hour = now ? Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone: timezone }).format(now)) : 12;
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  return (
+    <div className="dashboard-intro animate-sheet-in">
+      <div>
+        <p className="eyebrow">{now?.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: timezone }) ?? "YOUR EVERYDAY, BEAUTIFULLY"}</p>
+        <h1>{greeting}{name ? `, ${name}` : ""}.</h1>
+        <p>A little clarity. A space that’s yours.</p>
+      </div>
+      <span className="space-badge material"><span /> Your personal space</span>
+    </div>
+  );
 }
 
 export default function Dashboard() {
@@ -230,60 +252,50 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen">
       <AppHeader>
-        <Link
-          href="/marketplace"
-          className="press focus-ring flex h-8 items-center gap-1.5 rounded-full bg-fill px-3 text-[13px] font-medium"
-        >
-          <Icon name="store" size={15} />
-          Widgets
-        </Link>
         {instances.length > 0 && (
           <button
             type="button"
             onClick={() => setEditMode((v) => !v)}
-            className="press focus-ring flex h-8 items-center rounded-full px-3.5 text-[13px] font-semibold"
+            className="press focus-ring header-edit"
             style={
               editMode
                 ? { background: "var(--accent)", color: "#fff" }
                 : { background: "var(--fill)", color: "var(--label)" }
             }
           >
+            <Icon name={editMode ? "check" : "gear"} size={14} />
             {editMode ? "Done" : "Edit"}
           </button>
         )}
       </AppHeader>
 
-      <main className="mx-auto max-w-[1160px] px-5 py-6">
+      <main className="dashboard-main">
+        {!isFirstRun && <DashboardGreeting name={state?.preferences.displayName} timezone={state?.preferences.timezone} />}
         {isFirstRun && (
-          <div className="flex min-h-[70vh] flex-col items-center justify-center text-center">
-            <span
-              className="mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-[20px] text-white"
-              style={{
-                background: "linear-gradient(150deg, #0a84ff, #5e5ce6)",
-                boxShadow: "0 10px 30px rgba(10,132,255,0.35)",
-              }}
-            >
-              <Icon name="grid" size={34} strokeWidth={2} />
-            </span>
-            <h1 className="text-[32px] font-semibold tracking-tight">Widget Box</h1>
-            <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-secondary">
-              A dashboard of small, glanceable things — the time, the weather, a
-              timer, a note. Set yours up in about a minute.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link
-                href="/setup"
-                className="press focus-ring rounded-full px-6 py-2.5 text-[15px] font-semibold text-white"
-                style={{ background: "var(--accent)" }}
-              >
-                Get started
-              </Link>
-              <Link
-                href="/marketplace"
-                className="press focus-ring rounded-full bg-fill px-6 py-2.5 text-[15px] font-medium"
-              >
-                Browse widgets
-              </Link>
+          <div className="welcome-layout animate-sheet-in">
+            <div className="welcome-copy">
+              <span className="eyebrow">A LITTLE SPACE FOR YOU</span>
+              <h1>Your day.<br />A little more<br /><span>beautiful.</span></h1>
+              <p>The things that matter, in one quiet place. Create a personal collection of widgets and make every day feel a little more considered.</p>
+              <div className="welcome-actions">
+                <Link href="/setup" className="primary-button press focus-ring">Make it yours <Icon name="chevronRight" size={16} /></Link>
+                <Link href="/marketplace" className="text-button focus-ring">Explore widgets <Icon name="chevronRight" size={14} /></Link>
+              </div>
+              <span className="welcome-footnote"><Icon name="lock" size={13} /> No account needed. Just your space.</span>
+            </div>
+            <div className="welcome-showcase" aria-label="A preview of your widget collection">
+              <div className="showcase-top"><span className="eyebrow">THE EVERYDAY COLLECTION</span><Icon name="sparkles" size={19} /></div>
+              <div className="showcase-widgets">
+                <TilePreview widgetId="system.clock" size="small" cell={158} />
+                <TilePreview widgetId="system.calendar" size="small" cell={158} />
+                <div className="showcase-wide"><TilePreview widgetId="system.affirmation" size="medium" cell={158} /></div>
+              </div>
+              <div className="showcase-caption"><span>Small things. A better day.</span><span>YOURS TO ARRANGE</span></div>
+            </div>
+            <div className="welcome-details">
+              <span><Icon name="grid" size={17} /> Thoughtfully sized. Freely arranged.</span>
+              <span><Icon name="photo" size={17} /> A fresh perspective, all day.</span>
+              <span><Icon name="circleHalf" size={17} /> Beautiful from day to night.</span>
             </div>
           </div>
         )}
@@ -310,6 +322,13 @@ export default function Dashboard() {
         )}
 
         {instances.length > 0 && (
+          <div className="collection-heading">
+            <div><Icon name="grid" size={15} /><h2>{editMode ? "Arrange your space" : "Your collection"}</h2><span>{instances.length}</span></div>
+            <Link href="/marketplace" className="focus-ring text-button"><Icon name="plus" size={15} /> Add widget</Link>
+          </div>
+        )}
+
+        {instances.length > 0 && (
           <DndContext
             sensors={sensors}
             onDragStart={onDragStart}
@@ -322,7 +341,7 @@ export default function Dashboard() {
               style={
                 {
                   "--cols": cols,
-                  "--grid-gap": "16px",
+                  "--grid-gap": "20px",
                   gridTemplateRows: `repeat(${visibleRows}, var(--cell, 150px))`,
                 } as React.CSSProperties
               }
@@ -397,6 +416,7 @@ export default function Dashboard() {
             )}
           </DndContext>
         )}
+        {instances.length > 0 && !editMode && <p className="dashboard-footer">A place for everything. A moment for you.</p>}
       </main>
 
       {notice && (

@@ -20,14 +20,14 @@ export default function WidgetCard({
     <button
       type="button"
       onClick={onSelect}
-      className="press focus-ring material hairline flex flex-col gap-3 rounded-card p-4 text-left"
-      style={{ boxShadow: "var(--tile-shadow)" }}
+      className="gallery-card press focus-ring material hairline flex flex-col gap-3 text-left"
+      style={{ boxShadow: "var(--tile-shadow)", ["--widget-accent" as string]: meta.accent }}
     >
-      <div className="flex h-[170px] items-center justify-center overflow-hidden rounded-[14px] bg-fill">
+      <div className="gallery-preview flex items-center justify-center overflow-hidden">
         <TilePreview widgetId={meta.id} size={previewSize} cell={138} />
       </div>
 
-      <div className="flex items-start gap-2.5">
+      <div className="gallery-card-info flex items-start gap-2.5">
         <span
           className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px]"
           style={{ background: `${meta.accent}1f`, color: meta.accent }}

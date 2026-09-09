@@ -144,7 +144,7 @@ export default function SetupPage() {
 
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-5 py-10">
         <div
-          className="material hairline rounded-[20px] p-7"
+          className="setup-surface material hairline"
           style={{ boxShadow: "var(--tile-shadow)" }}
         >
           {step === 0 && <StepWelcome />}
