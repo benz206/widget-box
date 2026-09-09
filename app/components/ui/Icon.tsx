@@ -163,6 +163,13 @@ const paths: Record<string, React.ReactNode> = {
       <path d="M19 13l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5Z" />
     </>
   ),
+  photo: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="4" />
+      <path d="M3 16.5 8 11.5l4 4 2.5-2.5L21 19" />
+      <circle cx="15.5" cy="9" r="1.6" />
+    </>
+  ),
 };
 
 export type IconName = keyof typeof paths;

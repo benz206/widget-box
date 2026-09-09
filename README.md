@@ -58,6 +58,19 @@ Only widgets that genuinely need a server have one:
 Both cache upstream responses and degrade to a readable message inside the tile
 rather than to an empty box.
 
+## Backdrop
+
+The dashboard can cycle slowly through nature photos from Unsplash behind the
+widgets. It needs a free Unsplash API key:
+
+```bash
+echo 'UNSPLASH_ACCESS_KEY=your_key' >> .env
+```
+
+Get one at <https://unsplash.com/developers>. Without the key the app keeps its
+plain gradient background. The photo icon in the header turns the backdrop on
+and off per browser.
+
 ## Appearance
 
 Light and dark are both first-class. Colours are semantic tokens (`--label`,

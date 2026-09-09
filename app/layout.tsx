@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { APPEARANCE_BOOTSTRAP } from "./components/ui/appearance";
+import Backdrop from "./components/Backdrop";
 
 export const metadata: Metadata = {
   title: "Widget Box",
@@ -25,7 +26,10 @@ export default function RootLayout({
         {/* Resolves the appearance before first paint so there is no flash. */}
         <script dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOTSTRAP }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <Backdrop />
+        {children}
+      </body>
     </html>
   );
 }
