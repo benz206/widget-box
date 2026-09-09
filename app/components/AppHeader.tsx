@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Icon from "./ui/Icon";
+import { BackdropToggle } from "./Backdrop";
 import { applyAppearance, readAppearance, type Appearance } from "./ui/appearance";
 
 const NEXT: Record<Appearance, Appearance> = {
@@ -80,6 +81,7 @@ export default function AppHeader({
         )}
         <div className="ml-auto flex items-center gap-2">
           {children}
+          <BackdropToggle />
           <AppearanceToggle />
         </div>
       </div>
