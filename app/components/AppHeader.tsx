@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Icon from "./ui/Icon";
-import { BackdropToggle } from "./Backdrop";
+import { BackdropSettings } from "./Backdrop";
 import { applyAppearance, readAppearance, type Appearance } from "./ui/appearance";
 
 const NEXT: Record<Appearance, Appearance> = {
@@ -44,7 +45,7 @@ function AppearanceToggle() {
         setAppearance(next);
         applyAppearance(next);
       }}
-      className="press focus-ring flex h-8 w-8 items-center justify-center rounded-full bg-fill text-secondary hover:text-label"
+      className="press focus-ring header-icon text-secondary"
     >
       <Icon name={APPEARANCE_ICON[appearance]} size={16} />
     </button>
@@ -58,30 +59,28 @@ export default function AppHeader({
   subtitle?: string;
   children?: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
   return (
-    <header className="material sticky top-0 z-40 w-full border-b border-separator">
-      <div className="mx-auto flex h-[52px] max-w-[1160px] items-center gap-3 px-5">
-        <Link href="/" className="focus-ring flex items-center gap-2.5 rounded-lg">
-          <span
-            className="flex h-7 w-7 items-center justify-center rounded-[9px] text-white"
-            style={{
-              background: "linear-gradient(150deg, #0a84ff, #5e5ce6)",
-              boxShadow: "0 2px 6px rgba(10,132,255,0.35)",
-            }}
-          >
-            <Icon name="grid" size={15} strokeWidth={2.2} />
-          </span>
-          <span className="text-[15px] font-semibold tracking-tight">Widget Box</span>
+    <header className="app-header">
+      <div className="header-bar material">
+        <Link href="/" className="focus-ring brand" aria-label="Widget Box home">
+          <span className="brand-mark"><Icon name="grid" size={20} strokeWidth={1.8} /></span>
+          <span className="brand-name">Widget Box<span>Your everyday, beautifully.</span></span>
         </Link>
-        {subtitle && (
-          <span className="text-[15px] text-tertiary">
-            <span className="mr-2">/</span>
-            {subtitle}
-          </span>
-        )}
-        <div className="ml-auto flex items-center gap-2">
+        <nav className="header-nav" aria-label="Main navigation">
+          <Link href="/" aria-current={pathname === "/" ? "page" : undefined} className="focus-ring">
+            <Icon name="grid" size={15} /> My space
+          </Link>
+          <Link href="/marketplace" aria-current={pathname === "/marketplace" ? "page" : undefined} className="focus-ring">
+            <Icon name="plus" size={16} /> Discover
+          </Link>
+        </nav>
+        <div className="header-actions">
+          {subtitle && <span className="header-subtitle">{subtitle}</span>}
           {children}
-          <BackdropToggle />
+          <span className="header-divider" aria-hidden />
+          <BackdropSettings />
           <AppearanceToggle />
         </div>
       </div>
