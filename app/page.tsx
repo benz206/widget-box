@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   DndContext,
-  DragEndEvent,
   DragMoveEvent,
   DragStartEvent,
   PointerSensor,
@@ -116,7 +115,7 @@ export default function Dashboard() {
 
   const cols = state?.preferences.gridCols ?? DEFAULT_COLS;
   const rows = state?.preferences.gridRows ?? DEFAULT_ROWS;
-  const instances = state?.instances ?? [];
+  const instances = useMemo(() => state?.instances ?? [], [state]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -165,7 +164,7 @@ export default function Dashboard() {
   );
 
   const onDragEnd = useCallback(
-    (_event: DragEndEvent) => {
+    () => {
       if (activeId && preview && !previewBlocked) {
         actions.updateInstance(activeId, { position: preview });
       }

@@ -6,7 +6,6 @@ import {
   useNow,
   useRemote,
   WidgetHeader,
-  WidgetMessage,
   WidgetSkeleton,
 } from "@/app/components/widgets/kit";
 import { moonIllumination, moonPhase, moonPhaseName } from "@/lib/moon";

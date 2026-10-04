@@ -46,7 +46,7 @@ function ActivityView({ instanceId, size, config }: WidgetViewProps) {
   const dial = size === "large" ? 132 : size === "medium" ? 96 : 76;
   const radii = size === "large" ? [42, 29, 16] : [42, 28, 14];
 
-  const Rings = () => (
+  const rings = (
     <svg width={dial} height={dial} viewBox="-50 -50 100 100" className="shrink-0">
       {RINGS.map((ring, i) => (
         <ProgressRing
@@ -60,7 +60,7 @@ function ActivityView({ instanceId, size, config }: WidgetViewProps) {
     </svg>
   );
 
-  const Buttons = () => (
+  const buttons = (
     <div className="flex gap-1.5">
       {RINGS.map((ring) => (
         <TapButton
@@ -78,8 +78,8 @@ function ActivityView({ instanceId, size, config }: WidgetViewProps) {
   if (size === "small") {
     return (
       <div className="flex h-full w-full flex-col items-center justify-between">
-        <Rings />
-        <Buttons />
+        {rings}
+        {buttons}
       </div>
     );
   }
@@ -88,7 +88,7 @@ function ActivityView({ instanceId, size, config }: WidgetViewProps) {
     <div className="flex h-full w-full flex-col justify-between">
       <WidgetHeader icon="rings" label="Activity" accent={RINGS[0].color} />
       <div className="flex items-center gap-4">
-        <Rings />
+        {rings}
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           {RINGS.map((ring) => (
             <div key={ring.key}>
@@ -105,7 +105,7 @@ function ActivityView({ instanceId, size, config }: WidgetViewProps) {
           ))}
         </div>
       </div>
-      <Buttons />
+      {buttons}
     </div>
   );
 }

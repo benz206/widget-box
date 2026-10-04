@@ -46,7 +46,7 @@ function CalendarView({ size }: WidgetViewProps) {
 
   if (!model) return <WidgetSkeleton />;
 
-  const DateBlock = () => (
+  const dateBlock = (
     <div>
       <div className="text-[11px] font-semibold uppercase" style={{ color: ACCENT }}>
         {model.weekday.slice(0, 3)}
@@ -61,7 +61,7 @@ function CalendarView({ size }: WidgetViewProps) {
     return (
       <div className="flex h-full w-full flex-col justify-between">
         <WidgetHeader icon="calendar" label={model.monthName} accent={ACCENT} />
-        <DateBlock />
+        {dateBlock}
         <div className="text-[11px] font-medium text-secondary">
           {model.monthName} {model.year}
         </div>
@@ -72,7 +72,7 @@ function CalendarView({ size }: WidgetViewProps) {
   if (size === "medium") {
     return (
       <div className="flex h-full w-full items-center gap-5">
-        <DateBlock />
+        {dateBlock}
         <div className="flex flex-1 justify-between">
           {model.week.map((d) => {
             const isToday = d.getDate() === model.today && d.getMonth() === model.month;

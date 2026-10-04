@@ -23,12 +23,15 @@ export function useWidgetState<T>(
   const [loaded, setLoaded] = useState(false);
   const storageKey = key(instanceId, name);
   const valueRef = useRef(value);
-  valueRef.current = value;
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(storageKey);
-      if (raw !== null) setValue(JSON.parse(raw) as T);
+      if (raw !== null) {
+        const stored = JSON.parse(raw) as T;
+        valueRef.current = stored;
+        setValue(stored);
+      }
     } catch {
       // Corrupt entry — fall back to the initial value.
     }

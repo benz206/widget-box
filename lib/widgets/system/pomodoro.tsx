@@ -48,7 +48,9 @@ function PomodoroView({ instanceId, size, config }: WidgetViewProps) {
   // A pristine timer follows the configured length, so editing the interval in
   // settings is reflected immediately.
   const remaining = running
-    ? Math.max(0, timer.endsAt! - (now?.getTime() ?? Date.now()))
+    ? now
+      ? Math.max(0, timer.endsAt! - now.getTime())
+      : timer.remainingMs
     : timer.pristine
       ? totalMs
       : timer.remainingMs;
@@ -101,7 +103,7 @@ function PomodoroView({ instanceId, size, config }: WidgetViewProps) {
   const progress = 1 - remaining / totalMs;
   const clock = formatClock(remaining / 1000);
 
-  const Dial = ({ px }: { px: number }) => (
+  const dial = (px: number) => (
     <div className="relative shrink-0" style={{ width: px, height: px }}>
       <svg width={px} height={px} viewBox="-50 -50 100 100">
         <ProgressRing progress={progress} color={color} radius={44} stroke={7} />
@@ -117,7 +119,7 @@ function PomodoroView({ instanceId, size, config }: WidgetViewProps) {
     </div>
   );
 
-  const Controls = () => (
+  const controls = (
     <div className="flex items-center gap-2">
       <TapButton
         onClick={toggle}
@@ -138,15 +140,15 @@ function PomodoroView({ instanceId, size, config }: WidgetViewProps) {
           label={timer.mode === "focus" ? "Focus" : "Break"}
           accent={color}
         />
-        <Dial px={80} />
-        <Controls />
+        {dial(80)}
+        {controls}
       </div>
     );
   }
 
   return (
     <div className="flex h-full w-full items-center gap-5">
-      <Dial px={size === "large" ? 150 : 96} />
+      {dial(size === "large" ? 150 : 96)}
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div>
           <div className="text-[15px] font-semibold" style={{ color }}>
@@ -156,7 +158,7 @@ function PomodoroView({ instanceId, size, config }: WidgetViewProps) {
             {running ? "In progress" : remaining === totalMs ? "Ready" : "Paused"}
           </div>
         </div>
-        <Controls />
+        {controls}
         {size === "large" && (
           <div className="mt-1">
             <div className="text-[11px] font-medium text-tertiary">

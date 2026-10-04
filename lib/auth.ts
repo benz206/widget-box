@@ -24,7 +24,7 @@ export const authOptions: NextAuthOptions = {
         if (!user || !user.passwordHash) return null;
         const ok = await compare(password, user.passwordHash);
         if (!ok) return null;
-        return { id: user.id, name: user.name, email: user.email, image: user.image } as any;
+        return { id: user.id, name: user.name, email: user.email, image: user.image };
       },
     }),
   ],
