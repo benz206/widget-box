@@ -33,7 +33,7 @@ export default function StepPreferences({
       <div>
         <h2 className="text-[22px] font-semibold tracking-tight">A few details</h2>
         <p className="mt-1 text-[14px] text-secondary">
-          These seed your widgets' settings. Change any of them later.
+          These seed your widgets&apos; settings. Change any of them later.
         </p>
       </div>
 

@@ -32,13 +32,12 @@ function MoodView({ instanceId, size }: WidgetViewProps) {
 
   const choose = (index: number) => setSaved({ day: now ? today(now) : "", index });
 
-  const Bleed = () =>
-    mood ? (
-      <div
-        className="tile-bleed"
-        style={{ background: `linear-gradient(140deg, ${mood.from}, ${mood.to})` }}
-      />
-    ) : null;
+  const bleed = mood ? (
+    <div
+      className="tile-bleed"
+      style={{ background: `linear-gradient(140deg, ${mood.from}, ${mood.to})` }}
+    />
+  ) : null;
 
   const header = (
     <WidgetHeader
@@ -57,7 +56,7 @@ function MoodView({ instanceId, size }: WidgetViewProps) {
         className="tile-content focus-ring text-left"
         style={onColor ? { color: "#fff" } : undefined}
       >
-        <Bleed />
+        {bleed}
         <div className="relative flex h-full w-full flex-col justify-between">
           {header}
           <div>
@@ -82,7 +81,7 @@ function MoodView({ instanceId, size }: WidgetViewProps) {
 
   return (
     <div className="tile-content" style={onColor ? { color: "#fff" } : undefined}>
-      <Bleed />
+      {bleed}
       <div className="relative flex h-full w-full flex-col justify-between">
         {header}
         <div className="flex items-center gap-3">

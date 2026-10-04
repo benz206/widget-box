@@ -61,7 +61,7 @@ function PetView({ instanceId, size, config }: WidgetViewProps) {
       updatedAt: Date.now(),
     });
 
-  const Bars = () => (
+  const bars = (
     <div className="flex w-full gap-2">
       {STATS.map((stat) => (
         <div key={stat.key} className="flex-1">
@@ -91,7 +91,7 @@ function PetView({ instanceId, size, config }: WidgetViewProps) {
           <div className="font-mono text-[17px]">{mood.face}</div>
           <div className="mt-1 text-[11px] font-medium text-secondary">{mood.label}</div>
         </div>
-        <Bars />
+        {bars}
       </div>
     );
   }
@@ -109,7 +109,7 @@ function PetView({ instanceId, size, config }: WidgetViewProps) {
           <TapButton onClick={play} label="Play" icon="sparkles" filled accent={ACCENT} />
         </div>
       </div>
-      <Bars />
+      {bars}
     </div>
   );
 }

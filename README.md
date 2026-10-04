@@ -4,8 +4,8 @@ A personal dashboard of small, glanceable widgets — the time, the weather, a
 focus timer, a note — arranged on a grid you rearrange yourself.
 
 ```bash
-pnpm install
-pnpm dev
+bun install
+bun dev
 ```
 
 Then open <http://localhost:3000>.
@@ -84,8 +84,8 @@ browser. NextAuth with a credentials provider and a SQLite/Prisma user table
 sits behind `/login` if you want it:
 
 ```bash
-pnpm exec prisma migrate dev
-pnpm seed   # demo@widget.box / password123
+bunx prisma migrate dev
+bun seed   # demo@widget.box / password123
 ```
 
 `DATABASE_URL` is resolved relative to `prisma/schema.prisma`, so its current
