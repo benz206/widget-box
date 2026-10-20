@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import WidgetFrame from "./WidgetFrame";
 import WidgetSettingsPanel from "./WidgetSettingsPanel";
+import ConfirmDialog from "./ui/ConfirmDialog";
 import { getWidgetById, resolveConfig } from "@/lib/widgets/registry";
 import type { WidgetInstance } from "@/lib/storage/dashboard";
 import type { WidgetSize } from "@/lib/widgets/types";
@@ -29,6 +30,7 @@ export default function WidgetTile({
   const [settingsAnchor, setSettingsAnchor] = useState<{ x: number; y: number } | null>(
     null
   );
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
 
   const definition = getWidgetById(instance.widgetId);
   const config = useMemo(
@@ -45,7 +47,7 @@ export default function WidgetTile({
       position={instance.position}
       editMode={editMode}
       draggable={draggable}
-      onRemove={onRemove}
+      onRemove={() => setConfirmingRemove(true)}
       onOpenSettings={setSettingsAnchor}
     >
       <View
@@ -62,9 +64,19 @@ export default function WidgetTile({
           anchor={settingsAnchor}
           onSizeChange={onSizeChange}
           onConfigChange={onConfigChange}
-          onRemove={onRemove}
+          onRemove={() => setConfirmingRemove(true)}
           onDuplicate={onDuplicate}
           onClose={() => setSettingsAnchor(null)}
+        />
+      )}
+
+      {confirmingRemove && (
+        <ConfirmDialog
+          title={`Remove ${definition.meta.name}?`}
+          description="Its settings and anything it saved, like notes or timer progress, are deleted. This can’t be undone."
+          confirmLabel="Remove widget"
+          onConfirm={onRemove}
+          onCancel={() => setConfirmingRemove(false)}
         />
       )}
     </WidgetFrame>

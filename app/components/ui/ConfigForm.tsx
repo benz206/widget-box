@@ -2,7 +2,6 @@
 
 import type { ConfigField } from "@/lib/widgets/types";
 import Field from "./Field";
-import Icon from "./Icon";
 
 const inputClass = "input";
 
@@ -53,23 +52,18 @@ function Control({
   switch (field.kind) {
     case "select":
       return (
-        <div className="relative">
-          <select
-            value={String(value ?? "")}
-            onChange={(e) => onChange(e.target.value)}
-            onPointerDown={(e) => e.stopPropagation()}
-            className={inputClass}
-          >
-            {field.options.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-tertiary">
-            <Icon name="chevronDown" size={14} strokeWidth={2.2} />
-          </span>
-        </div>
+        <select
+          value={String(value ?? "")}
+          onChange={(e) => onChange(e.target.value)}
+          onPointerDown={(e) => e.stopPropagation()}
+          className={inputClass}
+        >
+          {field.options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       );
 
     case "number":
