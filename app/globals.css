@@ -98,16 +98,16 @@
   --color-negative: var(--negative);
   --color-warning: var(--warning);
 
-  --radius-tile: 26px;
-  --radius-card: 22px;
-  --radius-control: 10px;
+  --radius-tile: 14px;
+  --radius-card: 10px;
+  --radius-control: 6px;
 
   /* iOS sheet/spring curves — fast out, long settle. */
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out-ios: cubic-bezier(0.16, 1, 0.3, 1);
 
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
-    "Helvetica Neue", "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
 }
 
@@ -127,12 +127,7 @@ body {
   isolation: isolate;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.01em;
 }
-
-/* Apple sets tighter tracking as type gets larger. */
-h1, h2 { letter-spacing: -0.024em; }
-h3 { letter-spacing: -0.018em; }
 
 ::selection {
   background: color-mix(in srgb, var(--accent) 26%, transparent);
@@ -160,7 +155,6 @@ h3 { letter-spacing: -0.018em; }
    A squircle reads tighter than a circular corner, so the radius grows. */
 @supports (corner-shape: squircle) {
   .squircle { corner-shape: squircle; }
-  .rounded-tile.squircle { border-radius: 28px; }
 }
 
 .hairline { border: 1px solid var(--separator); }
@@ -170,14 +164,104 @@ h3 { letter-spacing: -0.018em; }
   outline-offset: 2px;
 }
 
-/* Buttons dip under the finger, the way iOS controls do. */
 .press {
-  transition: transform 200ms var(--ease-out-ios), background-color 160ms linear,
-    color 160ms linear, opacity 160ms linear;
+  transition: background-color 120ms linear, color 120ms linear, opacity 120ms linear;
 }
-.press:active { transform: scale(0.96); }
 
 .tabular { font-variant-numeric: tabular-nums; }
+
+/* ── Components ────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 32px; padding: 0 12px; border: 1px solid transparent; border-radius: var(--radius-control);
+  font-size: 13px; font-weight: 500; white-space: nowrap;
+  transition: background-color 120ms linear, border-color 120ms linear, color 120ms linear;
+}
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
+.btn-sm { height: 28px; padding: 0 8px; font-size: 12px; }
+.btn-lg { height: 40px; padding: 0 16px; font-size: 14px; }
+.btn-icon { width: 32px; padding: 0; }
+.btn-sm.btn-icon { width: 28px; }
+.btn-primary { background: var(--label); color: var(--elevated-solid); }
+.btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--label) 82%, var(--elevated-solid)); }
+.btn-secondary { background: var(--elevated-solid); color: var(--label); border-color: var(--separator); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); }
+.btn-secondary:hover:not(:disabled) { background: color-mix(in srgb, var(--elevated-solid) 94%, var(--label)); }
+.btn-ghost { color: var(--label-secondary); }
+.btn-ghost:hover:not(:disabled) { background: var(--fill); color: var(--label); }
+.btn-danger { color: var(--negative); background: color-mix(in srgb, var(--negative) 10%, transparent); }
+.btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--negative) 16%, transparent); }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 6px;
+  border-radius: 4px; font-size: 11px; font-weight: 500; white-space: nowrap;
+  font-variant-numeric: tabular-nums; background: var(--fill); color: var(--label-secondary);
+}
+.badge[data-tone="positive"] { background: color-mix(in srgb, var(--positive) 14%, transparent); color: color-mix(in srgb, var(--positive) 64%, var(--label)); }
+.badge[data-tone="warning"] { background: color-mix(in srgb, var(--warning) 16%, transparent); color: color-mix(in srgb, var(--warning) 60%, var(--label)); }
+.badge[data-tone="negative"] { background: color-mix(in srgb, var(--negative) 12%, transparent); color: color-mix(in srgb, var(--negative) 76%, var(--label)); }
+.badge[data-tone="accent"] { background: color-mix(in srgb, var(--accent) 12%, transparent); color: color-mix(in srgb, var(--accent) 80%, var(--label)); }
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.input {
+  width: 100%; height: 32px; padding: 0 10px; border: 1px solid var(--separator);
+  border-radius: var(--radius-control); background: var(--elevated-solid); color: var(--label);
+  font-size: 13px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03); outline: none;
+}
+.input::placeholder { color: var(--label-tertiary); }
+.input:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+select.input { appearance: none; padding-right: 28px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-label { font-size: 12px; font-weight: 500; color: var(--label); }
+.field-hint { font-size: 12px; color: var(--label-secondary); text-wrap: pretty; }
+
+.card { background: var(--elevated-solid); border: 1px solid var(--separator); border-radius: var(--radius-card); }
+
+.callout {
+  display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; border-radius: var(--radius-control);
+  font-size: 12px; line-height: 1.5;
+}
+.callout[data-tone="warning"] { background: color-mix(in srgb, var(--warning) 12%, transparent); color: color-mix(in srgb, var(--warning) 56%, var(--label)); }
+.callout[data-tone="negative"] { background: color-mix(in srgb, var(--negative) 10%, transparent); color: color-mix(in srgb, var(--negative) 76%, var(--label)); }
+
+.filter-group { display: flex; gap: 4px; overflow-x: auto; }
+.filter-pill {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px;
+  border: 1px solid var(--separator); border-radius: 999px; font-size: 12px; font-weight: 500;
+  color: var(--label-secondary); background: var(--elevated-solid); white-space: nowrap;
+}
+.filter-pill:hover { color: var(--label); }
+.filter-pill[aria-pressed="true"] { background: var(--label); border-color: var(--label); color: var(--elevated-solid); }
+.filter-pill > span { font-variant-numeric: tabular-nums; opacity: 0.64; }
+
+.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.data-table th {
+  height: 36px; padding: 0 16px; text-align: left; font-size: 12px; font-weight: 500;
+  color: var(--label-secondary); border-bottom: 1px solid var(--separator); white-space: nowrap;
+}
+.data-table td { height: 56px; padding: 0 16px; border-bottom: 1px solid var(--separator); }
+.data-table tbody tr:last-child td { border-bottom: 0; }
+.data-table tbody tr { cursor: pointer; }
+.data-table tbody tr:hover td { background: color-mix(in srgb, var(--fill) 60%, transparent); }
+
+.icon-tile {
+  display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 8px;
+  background: color-mix(in srgb, var(--tile-accent, var(--accent)) 12%, transparent);
+  color: var(--tile-accent, var(--accent));
+}
+
+.confirm-dialog {
+  width: min(400px, calc(100vw - 32px)); margin: auto; padding: 20px; color: var(--label);
+  box-shadow: var(--tile-shadow-lifted);
+}
+.confirm-dialog::backdrop { background: rgba(0, 0, 0, 0.32); }
+
+.kbd {
+  display: inline-flex; align-items: center; height: 18px; padding: 0 5px; border-radius: 4px;
+  border: 1px solid var(--separator); font-size: 11px; font-family: var(--font-sans); color: var(--label-secondary);
+}
 
 /* ── Backdrop ──────────────────────────────────────────────────────────── */
 

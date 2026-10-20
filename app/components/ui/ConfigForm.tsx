@@ -1,10 +1,10 @@
 "use client";
 
 import type { ConfigField } from "@/lib/widgets/types";
+import Field from "./Field";
 import Icon from "./Icon";
 
-const inputClass =
-  "focus-ring w-full rounded-control bg-fill px-3 py-2 text-[13px] text-label placeholder:text-tertiary outline-none";
+const inputClass = "input";
 
 function Toggle({
   checked,
@@ -23,18 +23,18 @@ function Toggle({
       aria-label={label}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={() => onChange(!checked)}
-      className="focus-ring relative h-[30px] w-[50px] shrink-0 rounded-full"
+      className="focus-ring relative h-5 w-8 shrink-0 rounded-full"
       style={{
-        background: checked ? "var(--positive)" : "var(--fill-tertiary)",
-        transition: "background-color 220ms var(--ease-ios)",
+        background: checked ? "var(--accent)" : "var(--fill-tertiary)",
+        transition: "background-color 120ms linear",
       }}
     >
       <span
-        className="absolute top-[2px] block h-[26px] w-[26px] rounded-full bg-white"
+        className="absolute left-0.5 top-0.5 block h-4 w-4 rounded-full bg-white"
         style={{
-          left: checked ? 22 : 2,
-          boxShadow: "0 2px 5px rgba(0,0,0,0.22)",
-          transition: "left 240ms var(--ease-ios)",
+          transform: checked ? "translateX(12px)" : undefined,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.24)",
+          transition: "transform 120ms ease-out",
         }}
       />
     </button>
@@ -58,7 +58,7 @@ function Control({
             value={String(value ?? "")}
             onChange={(e) => onChange(e.target.value)}
             onPointerDown={(e) => e.stopPropagation()}
-            className={`${inputClass} appearance-none pr-8`}
+            className={inputClass}
           >
             {field.options.map((option) => (
               <option key={option.value} value={option.value}>
@@ -66,7 +66,7 @@ function Control({
               </option>
             ))}
           </select>
-          <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-tertiary">
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-tertiary">
             <Icon name="chevronDown" size={14} strokeWidth={2.2} />
           </span>
         </div>
@@ -146,14 +146,14 @@ export default function ConfigForm({
   onChange: (key: string, value: unknown) => void;
 }) {
   return (
-    <div className="flex flex-col gap-3.5">
+    <div className="flex flex-col gap-4">
       {fields.map((field) =>
         field.kind === "toggle" ? (
           <div key={field.key} className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[13px] font-medium">{field.label}</div>
               {field.help && (
-                <div className="text-[11px] text-tertiary">{field.help}</div>
+                <div className="text-[12px] text-secondary">{field.help}</div>
               )}
             </div>
             <Toggle
@@ -163,19 +163,13 @@ export default function ConfigForm({
             />
           </div>
         ) : (
-          <label key={field.key} className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-medium text-secondary">
-              {field.label}
-            </span>
+          <Field key={field.key} label={field.label} hint={field.help}>
             <Control
               field={field}
               value={config[field.key]}
               onChange={(v) => onChange(field.key, v)}
             />
-            {field.help && (
-              <span className="text-[11px] text-tertiary">{field.help}</span>
-            )}
-          </label>
+          </Field>
         )
       )}
     </div>
