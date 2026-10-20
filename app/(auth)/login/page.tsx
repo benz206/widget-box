@@ -1,33 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
-import { signIn } from "next-auth/react";
+import { useActionState } from "react";
 import Icon from "@/app/components/ui/Icon";
+import { signInWithPassword } from "@/app/actions";
 
 const inputClass =
   "focus-ring w-full rounded-control bg-fill px-3.5 py-2.5 text-[15px] outline-none placeholder:text-tertiary";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setPending(true);
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-      callbackUrl: "/",
-    });
-    setPending(false);
-    if (result?.error) setError("That email and password did not match.");
-    else window.location.href = result?.url ?? "/";
-  };
+  const [error, formAction, pending] = useActionState(signInWithPassword, null);
 
   return (
     <div className="flex min-h-screen items-center justify-center px-5 py-10">
@@ -49,7 +31,7 @@ export default function LoginPage() {
         </div>
 
         <form
-          onSubmit={onSubmit}
+          action={formAction}
           className="material hairline flex flex-col gap-4 rounded-[20px] p-6"
           style={{ boxShadow: "var(--tile-shadow)" }}
         >
@@ -69,10 +51,9 @@ export default function LoginPage() {
             <span className="text-[13px] font-medium text-secondary">Email</span>
             <input
               type="email"
+              name="email"
               autoComplete="email"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               className={inputClass}
               placeholder="you@example.com"
             />
@@ -82,10 +63,9 @@ export default function LoginPage() {
             <span className="text-[13px] font-medium text-secondary">Password</span>
             <input
               type="password"
+              name="password"
               autoComplete="current-password"
               required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               className={inputClass}
               placeholder="••••••••"
             />

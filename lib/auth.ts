@@ -1,22 +1,21 @@
-import { type NextAuthOptions, getServerSession } from "next-auth";
+import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./prisma";
 import { compare } from "bcryptjs";
 import { z } from "zod";
 
-export const authOptions: NextAuthOptions = {
+export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   adapter: PrismaAdapter(prisma),
   providers: [
     Credentials({
-      name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const schema = z.object({ email: z.string().email(), password: z.string().min(6) });
+        const schema = z.object({ email: z.email(), password: z.string().min(6) });
         const parsed = schema.safeParse(credentials);
         if (!parsed.success) return null;
         const { email, password } = parsed.data;
@@ -39,19 +38,4 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-};
-
-export const getServerAuthSession = () => getServerSession(authOptions);
-
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-    };
-  }
-}
-
-
+});
