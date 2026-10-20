@@ -473,6 +473,10 @@ select.input {
 .step-title { font-size: 20px; font-weight: 600; line-height: 1.3; text-wrap: balance; }
 .step-description { margin-top: 4px; font-size: 14px; color: var(--label-secondary); text-wrap: pretty; }
 
+.auth-main { display: flex; flex: 1; align-items: flex-start; justify-content: center; padding: 96px 16px; }
+.auth-card { width: 100%; max-width: 400px; padding: 32px; }
+.input-lg { height: 40px; font-size: 14px; }
+
 .icon-tile-sm { width: 24px; height: 24px; border-radius: 6px; }
 .success-mark {
   display: grid; flex-shrink: 0; place-items: center; width: 32px; height: 32px; border-radius: 50%;

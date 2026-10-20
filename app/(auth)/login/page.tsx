@@ -2,91 +2,68 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import Button, { ButtonLink } from "@/app/components/ui/Button";
+import Field from "@/app/components/ui/Field";
 import Icon from "@/app/components/ui/Icon";
 import { signInWithPassword } from "@/app/actions";
-
-const inputClass =
-  "focus-ring w-full rounded-control bg-fill px-3.5 py-2.5 text-[15px] outline-none placeholder:text-tertiary";
 
 export default function LoginPage() {
   const [error, formAction, pending] = useActionState(signInWithPassword, null);
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-5 py-10">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <span
-            className="mb-5 flex h-[60px] w-[60px] items-center justify-center rounded-[17px] text-white"
-            style={{
-              background: "linear-gradient(150deg, #0a84ff, #5e5ce6)",
-              boxShadow: "0 10px 30px rgba(10,132,255,0.35)",
-            }}
-          >
-            <Icon name="grid" size={28} strokeWidth={2} />
-          </span>
-          <h1 className="text-[26px] font-semibold tracking-tight">Sign in</h1>
-          <p className="mt-1.5 text-[14px] text-secondary">
-            Widget Box works without an account — signing in is optional.
+    <div className="onboarding">
+      <header className="onboarding-bar material">
+        <Link href="/" className="sidebar-brand focus-ring" aria-label="Widget Box home">
+          <span className="brand-mark"><Icon name="grid" size={14} strokeWidth={2} /></span>
+          <span>Widget Box</span>
+        </Link>
+        <ButtonLink href="/" variant="ghost" size="sm">
+          Continue without an account
+        </ButtonLink>
+      </header>
+
+      <main className="auth-main">
+        <div className="card auth-card">
+          <h1 className="step-title">Sign in</h1>
+          <p className="step-description">
+            Optional. Your dashboard works without an account.
           </p>
+
+          <form action={formAction} className="mt-6 flex flex-col gap-4">
+            <Field label="Email">
+              <input
+                type="email"
+                name="email"
+                autoComplete="email"
+                required
+                className="input input-lg"
+                placeholder="you@example.com"
+              />
+            </Field>
+
+            <Field label="Password">
+              <input
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                required
+                className="input input-lg"
+              />
+            </Field>
+
+            {error && (
+              <p role="alert" className="callout" data-tone="negative">
+                <Icon name="alert" size={14} />
+                {error}
+              </p>
+            )}
+
+            <Button type="submit" variant="primary" size="lg" disabled={pending} className="mt-1 w-full">
+              {pending ? "Signing in…" : "Sign in"}
+            </Button>
+          </form>
         </div>
-
-        <form
-          action={formAction}
-          className="material hairline flex flex-col gap-4 rounded-[20px] p-6"
-          style={{ boxShadow: "var(--tile-shadow)" }}
-        >
-          {error && (
-            <p
-              className="rounded-control px-3.5 py-2.5 text-[13px]"
-              style={{
-                background: "color-mix(in srgb, var(--negative) 12%, transparent)",
-                color: "var(--negative)",
-              }}
-            >
-              {error}
-            </p>
-          )}
-
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-secondary">Email</span>
-            <input
-              type="email"
-              name="email"
-              autoComplete="email"
-              required
-              className={inputClass}
-              placeholder="you@example.com"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-secondary">Password</span>
-            <input
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              required
-              className={inputClass}
-              placeholder="••••••••"
-            />
-          </label>
-
-          <button
-            type="submit"
-            disabled={pending}
-            className="press focus-ring mt-1 rounded-full py-2.5 text-[15px] font-semibold text-white disabled:opacity-50"
-            style={{ background: "var(--accent)" }}
-          >
-            {pending ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
-
-        <p className="mt-5 text-center text-[13.5px] text-secondary">
-          <Link href="/" className="focus-ring font-medium text-accent">
-            Continue without an account
-          </Link>
-        </p>
-      </div>
+      </main>
     </div>
   );
 }
