@@ -1,5 +1,6 @@
 "use client";
 
+import Badge from "@/app/components/ui/Badge";
 import Icon from "@/app/components/ui/Icon";
 import { getWidgetById } from "@/lib/widgets/registry";
 
@@ -7,72 +8,58 @@ export default function StepFinish({
   widgetIds,
   displayName,
   dropped,
-  onFinish,
 }: {
   widgetIds: string[];
   displayName?: string;
   /** Widgets that would not fit on the grid. */
   dropped: string[];
-  onFinish: () => void;
 }) {
   const placed = widgetIds.length - dropped.length;
 
   return (
-    <div className="flex flex-col items-center py-4 text-center">
-      <span
-        className="mb-6 flex h-[68px] w-[68px] items-center justify-center rounded-full text-white"
-        style={{
-          background: "var(--positive)",
-          boxShadow: "0 10px 30px color-mix(in srgb, var(--positive) 40%, transparent)",
-        }}
-      >
-        <Icon name="check" size={32} strokeWidth={2.6} />
-      </span>
-
-      <h2 className="text-[28px] font-semibold tracking-tight">
-        {displayName ? `You're set, ${displayName}` : "You're all set"}
-      </h2>
-      <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-secondary">
-        {placed} widget{placed === 1 ? "" : "s"} ready to go.
-      </p>
+    <div>
+      <div className="flex items-start gap-3">
+        <span className="success-mark">
+          <Icon name="check" size={16} strokeWidth={2.4} />
+        </span>
+        <div>
+          <h2 className="step-title">
+            {displayName ? `You're set, ${displayName}` : "You're all set"}
+          </h2>
+          <p className="step-description">
+            {placed} of {widgetIds.length} widget{widgetIds.length === 1 ? "" : "s"} fit on your grid.
+          </p>
+        </div>
+      </div>
 
       {widgetIds.length > 0 && (
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <ul className="card mt-6 divide-y divide-separator">
           {widgetIds.map((id) => {
             const meta = getWidgetById(id)?.meta;
             if (!meta) return null;
             const skipped = dropped.includes(id);
             return (
-              <span
-                key={id}
-                className="flex items-center gap-1.5 rounded-full bg-fill px-3 py-1.5 text-[12.5px] font-medium"
-                style={skipped ? { opacity: 0.45 } : undefined}
-              >
-                <span style={{ color: meta.accent }}>
-                  <Icon name={meta.icon} size={14} strokeWidth={2} />
+              <li key={id} className="flex items-center gap-3 px-4 py-3">
+                <span className="icon-tile icon-tile-sm" style={{ ["--tile-accent" as string]: meta.accent }}>
+                  <Icon name={meta.icon} size={14} />
                 </span>
-                {meta.name}
-              </span>
+                <span className="flex-1 truncate text-[13px] font-medium">{meta.name}</span>
+                {skipped ? (
+                  <Badge tone="warning" dot>Didn&apos;t fit</Badge>
+                ) : (
+                  <Badge tone="positive" dot>Placed</Badge>
+                )}
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
 
       {dropped.length > 0 && (
-        <p className="mt-4 max-w-sm text-[12.5px] text-tertiary">
-          The dimmed ones did not fit on the grid. Add them from the widget
-          library once you have made room.
+        <p className="field-hint mt-3">
+          Add the ones that didn&apos;t fit from the widget library once you have made room.
         </p>
       )}
-
-      <button
-        type="button"
-        onClick={onFinish}
-        className="press focus-ring mt-8 rounded-full px-7 py-3 text-[15px] font-semibold text-white"
-        style={{ background: "var(--accent)" }}
-      >
-        Open dashboard
-      </button>
     </div>
   );
 }

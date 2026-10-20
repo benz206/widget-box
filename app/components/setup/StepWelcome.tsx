@@ -22,40 +22,25 @@ const POINTS: { icon: IconName; title: string; body: string }[] = [
 
 export default function StepWelcome() {
   return (
-    <div className="flex flex-col items-center py-4 text-center">
-      <span
-        className="mb-6 flex h-[68px] w-[68px] items-center justify-center rounded-[19px] text-white"
-        style={{
-          background: "linear-gradient(150deg, #0a84ff, #5e5ce6)",
-          boxShadow: "0 10px 30px rgba(10,132,255,0.35)",
-        }}
-      >
-        <Icon name="grid" size={32} strokeWidth={2} />
-      </span>
-
-      <h1 className="text-[30px] font-semibold tracking-tight">
-        Welcome to Widget Box
-      </h1>
-      <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-secondary">
+    <div>
+      <h1 className="step-title">Welcome to Widget Box</h1>
+      <p className="step-description">
         A dashboard of small, glanceable things. This takes about a minute.
       </p>
 
-      <div className="mt-8 flex w-full max-w-md flex-col gap-2">
+      <ul className="card mt-6 divide-y divide-separator">
         {POINTS.map((point) => (
-          <div
-            key={point.title}
-            className="flex items-start gap-3 rounded-card bg-fill px-4 py-3 text-left"
-          >
-            <span className="mt-0.5 shrink-0 text-accent">
-              <Icon name={point.icon} size={17} strokeWidth={2} />
+          <li key={point.title} className="flex items-start gap-3 p-4">
+            <span className="icon-tile">
+              <Icon name={point.icon} size={16} />
             </span>
             <div>
-              <div className="text-[14px] font-medium">{point.title}</div>
-              <div className="text-[12.5px] text-secondary">{point.body}</div>
+              <div className="text-[13px] font-semibold">{point.title}</div>
+              <div className="mt-0.5 text-[13px] text-secondary">{point.body}</div>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }
