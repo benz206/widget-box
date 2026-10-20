@@ -80,8 +80,9 @@ paint.
 ## Accounts
 
 Sign-in is optional and unused by the dashboard — the layout is local to the
-browser. NextAuth with a credentials provider and a SQLite/Prisma user table
-sits behind `/login` if you want it:
+browser. Auth.js v5 (`next-auth@beta`) with a credentials provider and a
+SQLite/Prisma user table sits behind `/login` if you want it. Set `AUTH_SECRET`
+in `.env` (`bunx auth secret` generates one), then:
 
 ```bash
 bunx prisma migrate dev
