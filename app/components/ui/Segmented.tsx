@@ -1,6 +1,8 @@
 "use client";
 
-type Option<T extends string> = { value: T; label: string };
+import Icon, { type IconName } from "./Icon";
+
+type Option<T extends string> = { value: T; label: string; icon?: IconName };
 
 export default function Segmented<T extends string>({
   options,
@@ -15,7 +17,7 @@ export default function Segmented<T extends string>({
   size?: "sm" | "md";
   className?: string;
 }) {
-  const pad = size === "sm" ? "px-2.5 py-1 text-[11px]" : "px-3 py-1.5 text-[13px]";
+  const pad = size === "sm" ? "h-6 px-2 text-[12px]" : "h-7 px-3 text-[13px]";
   return (
     <div
       role="group"
@@ -28,21 +30,23 @@ export default function Segmented<T extends string>({
             key={option.value}
             type="button"
             aria-pressed={selected}
+            aria-label={option.icon ? option.label : undefined}
+            title={option.icon ? option.label : undefined}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={() => onChange(option.value)}
-            className={`press focus-ring flex-1 whitespace-nowrap rounded-[7px] font-medium ${pad} ${
+            className={`press focus-ring flex flex-1 items-center justify-center whitespace-nowrap rounded-[4px] font-medium ${pad} ${
               selected ? "text-label" : "text-secondary hover:text-label"
             }`}
             style={
               selected
                 ? {
                     background: "var(--elevated-solid)",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.16)",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.12), 0 0 0 1px var(--separator)",
                   }
                 : undefined
             }
           >
-            {option.label}
+            {option.icon ? <Icon name={option.icon} size={14} /> : option.label}
           </button>
         );
       })}

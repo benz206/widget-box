@@ -163,6 +163,20 @@ const paths: Record<string, React.ReactNode> = {
       <path d="M19 13l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5Z" />
     </>
   ),
+  list: <path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" />,
+  arrowRight: <path d="M5 12h14M13 6l6 6-6 6" />,
+  logout: (
+    <>
+      <path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H14" />
+      <path d="M10 8l-4 4 4 4M6 12h10" />
+    </>
+  ),
+  alert: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5v5M12 16.2v.1" />
+    </>
+  ),
   photo: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="4" />

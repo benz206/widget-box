@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { APPEARANCE_BOOTSTRAP } from "./components/ui/appearance";
 import Backdrop from "./components/Backdrop";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Widget Box",
@@ -21,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
         {/* Resolves the appearance before first paint so there is no flash. */}
         <script dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOTSTRAP }} />
