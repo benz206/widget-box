@@ -151,8 +151,7 @@ body {
   backdrop-filter: blur(28px) saturate(180%);
 }
 
-/* Real squircles where the browser can draw them, plain radii elsewhere.
-   A squircle reads tighter than a circular corner, so the radius grows. */
+/* Real squircles where the browser can draw them, plain radii elsewhere. */
 @supports (corner-shape: squircle) {
   .squircle { corner-shape: squircle; }
 }
@@ -260,11 +259,6 @@ select.input {
   box-shadow: var(--tile-shadow-lifted);
 }
 .confirm-dialog::backdrop { background: rgba(0, 0, 0, 0.32); }
-
-.kbd {
-  display: inline-flex; align-items: center; height: 18px; padding: 0 5px; border-radius: 4px;
-  border: 1px solid var(--separator); font-size: 11px; font-family: var(--font-sans); color: var(--label-secondary);
-}
 
 /* ── Backdrop ──────────────────────────────────────────────────────────── */
 
