@@ -60,112 +60,88 @@ export default function StepPreset({
   onToggleWidget: (widgetId: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-[22px] font-semibold tracking-tight">
-          Choose a starting point
-        </h2>
-        <p className="mt-1 text-[14px] text-secondary">
-          You can add, remove, and rearrange everything later.
-        </p>
-      </div>
+    <div>
+      <h2 className="step-title">Choose a starting point</h2>
+      <p className="step-description">
+        You can add, remove, and rearrange everything later.
+      </p>
 
-      <div className="grid gap-2.5 sm:grid-cols-2">
-        {PRESETS.map((preset) => {
-          const active = presetId === preset.id;
-          return (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => onPickPreset(preset.id, [...preset.widgetIds])}
-              className="press focus-ring hairline flex flex-col gap-2.5 rounded-card p-4 text-left"
-              style={
-                active
-                  ? {
-                      borderColor: "var(--accent)",
-                      background: "color-mix(in srgb, var(--accent) 8%, transparent)",
-                      boxShadow: "0 0 0 1px var(--accent)",
-                    }
-                  : { background: "var(--fill)" }
-              }
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-[15px] font-semibold">{preset.name}</span>
-                {active && (
-                  <span className="ml-auto text-accent">
-                    <Icon name="check" size={15} strokeWidth={2.6} />
-                  </span>
-                )}
-              </div>
-              <p className="text-[12.5px] text-secondary">{preset.description}</p>
-              <div className="flex gap-1.5">
-                {preset.widgetIds.length > 0 ? (
-                  preset.widgetIds.map((id) => {
-                    const meta = getWidgetById(id)?.meta;
-                    if (!meta) return null;
-                    return (
-                      <span
-                        key={id}
-                        title={meta.name}
-                        className="flex h-7 w-7 items-center justify-center rounded-[8px]"
-                        style={{ background: `${meta.accent}24`, color: meta.accent }}
-                      >
-                        <Icon name={meta.icon} size={15} strokeWidth={2} />
-                      </span>
-                    );
-                  })
-                ) : (
-                  <span className="text-[12px] text-tertiary">
-                    Any combination you like
-                  </span>
-                )}
-              </div>
-            </button>
-          );
-        })}
+      <div className="mt-6 grid gap-2 sm:grid-cols-2">
+        {PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            aria-pressed={presetId === preset.id}
+            onClick={() => onPickPreset(preset.id, [...preset.widgetIds])}
+            className="choice-card focus-ring"
+          >
+            <span className="flex items-center justify-between gap-2">
+              <span className="text-[13px] font-semibold">{preset.name}</span>
+              <span className="radio" aria-hidden />
+            </span>
+            <span className="text-[12px] text-secondary">{preset.description}</span>
+            <span className="mt-1 flex gap-1">
+              {preset.widgetIds.length > 0 ? (
+                preset.widgetIds.map((id) => {
+                  const meta = getWidgetById(id)?.meta;
+                  if (!meta) return null;
+                  return (
+                    <span
+                      key={id}
+                      title={meta.name}
+                      className="icon-tile icon-tile-sm"
+                      style={{ ["--tile-accent" as string]: meta.accent }}
+                    >
+                      <Icon name={meta.icon} size={14} />
+                    </span>
+                  );
+                })
+              ) : (
+                <span className="text-[12px] leading-6 text-secondary">
+                  Any combination you like
+                </span>
+              )}
+            </span>
+          </button>
+        ))}
       </div>
 
       {presetId === "custom" && (
-        <div className="flex flex-col gap-5">
+        <div className="mt-6 flex flex-col gap-4">
           {listByCategory().map(([category, definitions]) => (
             <div key={category}>
-              <div className="mb-2 text-[12px] font-semibold text-secondary">
+              <h3 className="mb-2 text-[12px] font-medium text-secondary">
                 {CATEGORY_LABELS[category]}
-              </div>
-              <div className="grid gap-1.5 sm:grid-cols-2">
+              </h3>
+              <div className="card divide-y divide-separator overflow-hidden">
                 {definitions.map(({ meta }) => {
                   const checked = selected.includes(meta.id);
                   return (
                     <button
                       key={meta.id}
                       type="button"
+                      role="checkbox"
+                      aria-checked={checked}
                       onClick={() => onToggleWidget(meta.id)}
-                      className="press focus-ring flex items-center gap-2.5 rounded-control px-3 py-2 text-left"
-                      style={{
-                        background: checked
-                          ? "color-mix(in srgb, var(--accent) 10%, transparent)"
-                          : "var(--fill)",
-                      }}
+                      className="check-row focus-ring"
                     >
+                      <span className="checkbox" aria-hidden>
+                        {checked && <Icon name="check" size={12} strokeWidth={2.6} />}
+                      </span>
                       <span
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px]"
-                        style={{ background: `${meta.accent}24`, color: meta.accent }}
+                        className="icon-tile icon-tile-sm"
+                        style={{ ["--tile-accent" as string]: meta.accent }}
                       >
-                        <Icon name={meta.icon} size={15} strokeWidth={2} />
+                        <Icon name={meta.icon} size={14} />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13.5px] font-medium">
+                        <span className="block truncate text-[13px] font-medium">
                           {meta.name}
                         </span>
-                        <span className="block truncate text-[11.5px] text-tertiary">
+                        <span className="block truncate text-[12px] text-secondary">
                           {meta.tagline}
                         </span>
                       </span>
-                      {checked && (
-                        <span className="shrink-0 text-accent">
-                          <Icon name="check" size={15} strokeWidth={2.6} />
-                        </span>
-                      )}
                     </button>
                   );
                 })}
