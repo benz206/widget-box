@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import AppHeader from "@/app/components/AppHeader";
 import Icon from "@/app/components/ui/Icon";
 import WidgetCard from "@/app/components/marketplace/WidgetCard";
 import WidgetDetail from "@/app/components/marketplace/WidgetDetail";
@@ -49,9 +48,7 @@ export default function MarketplacePage() {
   }, [state]);
 
   return (
-    <div className="min-h-screen">
-      <AppHeader subtitle="Widgets" />
-
+    <>
       <main className="gallery-main">
         <div className="gallery-intro">
           <div><span className="eyebrow">THE WIDGET COLLECTION</span><h1>Little things.<br />Endless possibilities.</h1></div>
@@ -135,6 +132,6 @@ export default function MarketplacePage() {
           onClose={() => setSelected(null)}
         />
       )}
-    </div>
+    </>
   );
 }

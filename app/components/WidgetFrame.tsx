@@ -3,6 +3,7 @@
 import React from "react";
 import { useDraggable } from "@dnd-kit/core";
 import Icon from "./ui/Icon";
+import { buttonClass } from "./ui/Button";
 import type { WidgetPosition } from "@/lib/widgets/types";
 
 type Props = {
@@ -15,15 +16,13 @@ type Props = {
   onOpenSettings: (anchor: { x: number; y: number }) => void;
 };
 
-function CornerButton({
+function ToolbarButton({
   label,
   icon,
-  className,
   onClick,
 }: {
   label: string;
-  icon: "minus" | "gear";
-  className: string;
+  icon: "trash" | "gear";
   onClick: (e: React.MouseEvent) => void;
 }) {
   return (
@@ -36,9 +35,9 @@ function CornerButton({
         e.stopPropagation();
         onClick(e);
       }}
-      className={`press focus-ring material hairline absolute z-20 flex h-6 w-6 items-center justify-center rounded-full text-label shadow-sm ${className}`}
+      className={buttonClass({ variant: "ghost", size: "sm", iconOnly: true })}
     >
-      <Icon name={icon} size={13} strokeWidth={2.4} />
+      <Icon name={icon} size={14} />
     </button>
   );
 }
@@ -62,7 +61,6 @@ export default function WidgetFrame({
       ref={setNodeRef}
       className={[
         "grid-item relative",
-        editMode && !isDragging && "jiggle",
         draggable && "cursor-grab touch-none active:cursor-grabbing",
         isDragging && "z-50",
       ]
@@ -75,11 +73,12 @@ export default function WidgetFrame({
           "--gw": position.w,
           "--gh": position.h,
           transform: transform
-            ? `translate3d(${transform.x}px, ${transform.y}px, 0) scale(1.04)`
+            ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
             : undefined,
           transition: isDragging ? "none" : "transform 260ms var(--ease-ios)",
         } as React.CSSProperties
       }
+      data-editing={editMode || undefined}
       {...(draggable ? listeners : {})}
       {...(draggable ? attributes : {})}
       onContextMenu={(e) => {
@@ -92,23 +91,17 @@ export default function WidgetFrame({
       }}
     >
       {editMode && (
-        <>
-          <CornerButton
-            label="Remove widget"
-            icon="minus"
-            className="-left-1.5 -top-1.5"
-            onClick={onRemove}
-          />
-          <CornerButton
+        <div className="tile-toolbar">
+          <ToolbarButton
             label="Widget settings"
             icon="gear"
-            className="-right-1.5 -top-1.5"
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               onOpenSettings({ x: rect.right, y: rect.bottom });
             }}
           />
-        </>
+          <ToolbarButton label="Remove widget" icon="trash" onClick={onRemove} />
+        </div>
       )}
 
       <section

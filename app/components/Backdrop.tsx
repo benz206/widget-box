@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Icon from "./ui/Icon";
+import { buttonClass } from "./ui/Button";
+import Field from "./ui/Field";
 import type { BackdropPhoto } from "@/app/api/backdrop/route";
 
 const SETTINGS_KEY = "widget-box:backdrop-settings";
@@ -70,29 +72,27 @@ export function BackdropSettings() {
         title="Background settings"
         aria-label="Background settings"
         popoverTarget="backdrop-settings"
-        className="press focus-ring header-icon text-secondary"
+        className={buttonClass({ variant: "ghost", iconOnly: true })}
       >
         <Icon name="photo" size={16} />
       </button>
-      <div id="backdrop-settings" popover="auto" className="backdrop-settings material" aria-labelledby="backdrop-settings-title">
-        <div className="flex items-center justify-between gap-4">
-          <h2 id="backdrop-settings-title" className="text-[15px] font-semibold">Background</h2>
-          <button type="button" popoverTarget="backdrop-settings" popoverTargetAction="hide" aria-label="Close background settings" className="focus-ring header-icon"><Icon name="xmark" size={15} /></button>
+      <div id="backdrop-settings" popover="auto" className="backdrop-settings card" aria-labelledby="backdrop-settings-title">
+        <div className="flex items-center justify-between gap-4 border-b border-separator px-4 py-3">
+          <h2 id="backdrop-settings-title" className="text-[14px] font-semibold">Background</h2>
+          <button type="button" popoverTarget="backdrop-settings" popoverTargetAction="hide" aria-label="Close background settings" className={buttonClass({ variant: "ghost", size: "sm", iconOnly: true })}><Icon name="xmark" size={14} /></button>
         </div>
-        <p className="mb-5 text-[12px] leading-relaxed text-secondary">A changing landscape. At your pace.</p>
-        <label className="backdrop-setting">
-          <span>Change photo every</span>
-          <select className="focus-ring" value={settings.rotation} onChange={(event) => update({ rotation: Number(event.target.value) })}>
-            {ROTATION_SECONDS.map((seconds) => <option key={seconds} value={seconds}>{seconds < 60 ? `${seconds} seconds` : `${seconds / 60} ${seconds === 60 ? "minute" : "minutes"}`}</option>)}
-          </select>
-        </label>
-        <label className="backdrop-setting">
-          <span>Crossfade duration</span>
-          <select className="focus-ring" value={settings.fade} onChange={(event) => update({ fade: Number(event.target.value) })}>
-            {FADE_SECONDS.map((seconds) => <option key={seconds} value={seconds}>{seconds} {seconds === 1 ? "second" : "seconds"}</option>)}
-          </select>
-        </label>
-        <p className="mt-4 text-[10px] leading-relaxed text-secondary">Motion follows your device’s accessibility preferences.</p>
+        <div className="flex flex-col gap-4 p-4">
+          <Field label="Change photo every">
+            <select className="input" value={settings.rotation} onChange={(event) => update({ rotation: Number(event.target.value) })}>
+              {ROTATION_SECONDS.map((seconds) => <option key={seconds} value={seconds}>{seconds < 60 ? `${seconds} seconds` : `${seconds / 60} ${seconds === 60 ? "minute" : "minutes"}`}</option>)}
+            </select>
+          </Field>
+          <Field label="Crossfade duration" hint="Motion follows your device’s accessibility preferences.">
+            <select className="input" value={settings.fade} onChange={(event) => update({ fade: Number(event.target.value) })}>
+              {FADE_SECONDS.map((seconds) => <option key={seconds} value={seconds}>{seconds} {seconds === 1 ? "second" : "seconds"}</option>)}
+            </select>
+          </Field>
+        </div>
       </div>
     </>
   );

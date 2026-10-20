@@ -2,10 +2,12 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Button from "./ui/Button";
 import ConfigForm from "./ui/ConfigForm";
+import Field from "./ui/Field";
 import Icon from "./ui/Icon";
 import Segmented from "./ui/Segmented";
-import { getConfigFields, getWidgetById } from "@/lib/widgets/registry";
+import { CATEGORY_LABELS, getConfigFields, getWidgetById } from "@/lib/widgets/registry";
 import { SIZE_LABELS, type WidgetSize } from "@/lib/widgets/types";
 
 const WIDTH = 300;
@@ -77,7 +79,7 @@ export default function WidgetSettingsPanel({
       ref={panelRef}
       role="dialog"
       aria-label={`${definition.meta.name} settings`}
-      className="animate-sheet-in material hairline fixed z-[200] flex flex-col rounded-card"
+      className="animate-sheet-in card fixed z-[200] flex flex-col"
       style={{
         left: placement.left,
         top: placement.top,
@@ -87,27 +89,24 @@ export default function WidgetSettingsPanel({
       }}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <header className="flex items-center gap-2 border-b border-separator px-4 py-3">
-        <span style={{ color: definition.meta.accent }}>
-          <Icon name={definition.meta.icon} size={15} strokeWidth={2} />
+      <header className="flex items-center gap-3 border-b border-separator px-4 py-3">
+        <span className="icon-tile" style={{ ["--tile-accent" as string]: definition.meta.accent }}>
+          <Icon name={definition.meta.icon} size={16} />
         </span>
-        <h2 className="flex-1 truncate text-[14px] font-semibold">
-          {definition.meta.name}
-        </h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="press focus-ring flex h-6 w-6 items-center justify-center rounded-full bg-fill text-secondary"
-        >
-          <Icon name="xmark" size={12} strokeWidth={2.4} />
-        </button>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-[14px] font-semibold">{definition.meta.name}</h2>
+          <p className="truncate text-[12px] text-secondary">
+            {CATEGORY_LABELS[definition.meta.category]}
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" iconOnly onClick={onClose} aria-label="Close">
+          <Icon name="xmark" size={14} />
+        </Button>
       </header>
 
       <div className="flex flex-col gap-4 overflow-y-auto px-4 py-4">
         {sizes.length > 1 && (
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-medium text-secondary">Size</span>
+          <Field label="Size" group>
             <Segmented
               options={sizes.map((s) => ({ value: s, label: SIZE_LABELS[s] }))}
               value={size}
@@ -115,7 +114,7 @@ export default function WidgetSettingsPanel({
               size="sm"
               className="w-full"
             />
-          </div>
+          </Field>
         )}
 
         {fields.length > 0 && (
@@ -127,30 +126,28 @@ export default function WidgetSettingsPanel({
         )}
       </div>
 
-      <footer className="flex gap-2 border-t border-separator px-4 py-3">
-        <button
-          type="button"
-          onClick={() => {
-            onDuplicate();
-            onClose();
-          }}
-          className="press focus-ring flex flex-1 items-center justify-center gap-1.5 rounded-control bg-fill py-2 text-[13px] font-medium"
-        >
-          <Icon name="duplicate" size={14} />
-          Duplicate
-        </button>
-        <button
-          type="button"
+      <footer className="flex justify-between gap-2 border-t border-separator px-4 py-3">
+        <Button
+          size="sm"
+          variant="danger"
           onClick={() => {
             onRemove();
             onClose();
           }}
-          className="press focus-ring flex flex-1 items-center justify-center gap-1.5 rounded-control py-2 text-[13px] font-medium text-negative"
-          style={{ background: "color-mix(in srgb, var(--negative) 12%, transparent)" }}
         >
           <Icon name="trash" size={14} />
           Remove
-        </button>
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => {
+            onDuplicate();
+            onClose();
+          }}
+        >
+          <Icon name="duplicate" size={14} />
+          Duplicate
+        </Button>
       </footer>
     </div>,
     document.body
