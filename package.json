@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "postinstall": "prisma generate",
     "seed": "bun scripts/seed.ts"
   },
   "dependencies": {
@@ -15,7 +16,8 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
-    "@prisma/client": "^6.19.3",
+    "@prisma/adapter-libsql": "7.10.1",
+    "@prisma/client": "7.10.1",
     "axios": "^1.20.0",
     "bcryptjs": "^3.0.3",
     "next": "16.4.2",
@@ -29,9 +31,10 @@
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "dotenv": "^18.0.8",
     "eslint": "^10.13.0",
     "eslint-config-next": "16.4.2",
-    "prisma": "^6.19.3",
+    "prisma": "7.10.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^6"
   }
