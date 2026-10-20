@@ -88,5 +88,7 @@ bunx prisma migrate dev
 bun seed   # demo@widget.box / password123
 ```
 
-`DATABASE_URL` is resolved relative to `prisma/schema.prisma`, so its current
-value puts the database at `prisma/prisma/dev.db`.
+Prisma 7 reads its settings from `prisma.config.ts` and talks to SQLite through
+the libSQL driver adapter. `DATABASE_URL` is resolved relative to the project
+root, so `file:./prisma/dev.db` puts the database at `prisma/dev.db`. The client
+is generated into `lib/generated/prisma` on install.
