@@ -25,7 +25,7 @@ export const clockWidget: WidgetDefinition = {
 
 - `meta` drives the widget library listing, the icon, and the allowed sizes.
 - `configFields` are rendered into settings forms automatically — declare a
-  field and the settings popover and the add-widget sheet both pick it up.
+  field and the settings popover and the add-widget drawer both pick it up.
 - `View` receives `{ instanceId, size, config }` and renders the tile's
   interior. The frame, padding, drag handling, and edit affordances are
   supplied around it.
@@ -76,6 +76,13 @@ Light and dark are both first-class. Colours are semantic tokens (`--label`,
 per-component overrides, so a component almost never needs a `dark:` variant.
 The appearance follows the OS unless overridden, and resolves before first
 paint.
+
+The interface is set in Inter on a 4px grid with small radii and 1px borders.
+Shared primitives live in `app/components/ui` (`Button`, `Badge`, `Field`,
+`PageHeader`, `FilterPills`, `Segmented`, `ConfirmDialog`), backed by plain
+classes in `globals.css` (`.btn`, `.badge`, `.input`, `.card`, `.data-table`,
+`.drawer`, …). Pages inside `app/(app)` share the sidebar shell; setup and
+sign-in are focused pages without it.
 
 ## Accounts
 
