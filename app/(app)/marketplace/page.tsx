@@ -1,9 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Button from "@/app/components/ui/Button";
+import FilterPills from "@/app/components/ui/FilterPills";
 import Icon from "@/app/components/ui/Icon";
+import PageHeader from "@/app/components/ui/PageHeader";
+import Segmented from "@/app/components/ui/Segmented";
 import WidgetCard from "@/app/components/marketplace/WidgetCard";
 import WidgetDetail from "@/app/components/marketplace/WidgetDetail";
+import WidgetTable from "@/app/components/marketplace/WidgetTable";
 import { useDashboard } from "@/lib/storage/dashboard";
 import { CATEGORY_LABELS, listWidgets } from "@/lib/widgets/registry";
 import { registerSystemWidgets, SYSTEM_WIDGET_IDS } from "@/lib/widgets/system";
@@ -24,7 +29,18 @@ export default function MarketplacePage() {
   const { state, actions } = useDashboard(SYSTEM_WIDGET_IDS);
   const [category, setCategory] = useState<WidgetCategory | "all">("all");
   const [query, setQuery] = useState("");
+  const [view, setView] = useState<"grid" | "list">("grid");
   const [selected, setSelected] = useState<string | null>(null);
+
+  const all = listWidgets();
+  const categoryOptions = [
+    { value: "all" as const, label: "All", count: all.length },
+    ...CATEGORY_ORDER.map((c) => ({
+      value: c,
+      label: CATEGORY_LABELS[c],
+      count: all.filter((def) => def.meta.category === c).length,
+    })).filter((option) => option.count > 0),
+  ];
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -48,81 +64,67 @@ export default function MarketplacePage() {
   }, [state]);
 
   return (
-    <>
-      <main className="gallery-main">
-        <div className="gallery-intro">
-          <div><span className="eyebrow">THE WIDGET COLLECTION</span><h1>Little things.<br />Endless possibilities.</h1></div>
-          <p>{listWidgets().length} thoughtfully crafted widgets for your everyday. Find your favorites. Make them yours.</p>
-        </div>
+    <main className="page">
+      <PageHeader
+        title="Widget library"
+        description={`${all.length} widgets. Add as many copies as you like; each one keeps its own settings.`}
+      />
 
-        <div className="gallery-toolbar">
-          <div className="relative w-full sm:w-60">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-tertiary">
-              <Icon name="search" size={15} />
-            </span>
+      <div className="toolbar">
+        <FilterPills label="Category" options={categoryOptions} value={category} onChange={setCategory} />
+        <div className="toolbar-end">
+          <div className="search">
+            <Icon name="search" size={14} />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Find your next widget"
+              placeholder="Search widgets"
               aria-label="Search widgets"
-              className="focus-ring material h-10 w-full rounded-full pl-9 pr-4 text-[12px] outline-none placeholder:text-tertiary"
+              className="input"
             />
           </div>
-
-          <div className="flex flex-wrap gap-1.5 sm:ml-auto">
-            {(["all", ...CATEGORY_ORDER] as const).map((option) => {
-              const active = category === option;
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setCategory(option)}
-                  aria-pressed={active}
-                  className="press focus-ring rounded-full px-3 py-1.5 text-[12.5px] font-medium"
-                  style={
-                    active
-                      ? { background: "var(--label)", color: "var(--canvas)" }
-                      : { background: "var(--fill)", color: "var(--label-secondary)" }
-                  }
-                >
-                  {option === "all" ? "All" : CATEGORY_LABELS[option]}
-                </button>
-              );
-            })}
-          </div>
+          <Segmented
+            options={[
+              { value: "grid", label: "Grid view", icon: "grid" },
+              { value: "list", label: "List view", icon: "list" },
+            ]}
+            value={view}
+            onChange={setView}
+          />
         </div>
+      </div>
 
-        {results.length > 0 ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {results.map((definition) => (
-              <WidgetCard
-                key={definition.meta.id}
-                definition={definition}
-                installedCount={installed.get(definition.meta.id) ?? 0}
-                onSelect={() => setSelected(definition.meta.id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-fill text-tertiary">
-              <Icon name="search" size={22} />
-            </span>
-            <p className="text-[14px] text-secondary">Nothing matches that.</p>
-            <button
-              type="button"
-              onClick={() => {
-                setQuery("");
-                setCategory("all");
-              }}
-              className="press focus-ring mt-3 text-[13px] font-medium text-accent"
-            >
-              Clear filters
-            </button>
-          </div>
-        )}
-      </main>
+      {results.length === 0 ? (
+        <div className="card empty-state">
+          <span className="icon-tile">
+            <Icon name="search" size={16} />
+          </span>
+          <h2>No widgets match</h2>
+          <p>Try a different search or category.</p>
+          <Button
+            onClick={() => {
+              setQuery("");
+              setCategory("all");
+            }}
+          >
+            Clear filters
+          </Button>
+        </div>
+      ) : view === "grid" ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {results.map((definition) => (
+            <WidgetCard
+              key={definition.meta.id}
+              definition={definition}
+              installedCount={installed.get(definition.meta.id) ?? 0}
+              onSelect={() => setSelected(definition.meta.id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <WidgetTable definitions={results} installed={installed} onSelect={setSelected} />
+      )}
 
       {selected && (
         <WidgetDetail
@@ -132,6 +134,6 @@ export default function MarketplacePage() {
           onClose={() => setSelected(null)}
         />
       )}
-    </>
+    </main>
   );
 }
