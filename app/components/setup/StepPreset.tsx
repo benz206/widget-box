@@ -1,5 +1,3 @@
-"use client";
-
 import Icon from "@/app/components/ui/Icon";
 import { CATEGORY_LABELS, getWidgetById, listByCategory } from "@/lib/widgets/registry";
 

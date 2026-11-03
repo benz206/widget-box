@@ -11,6 +11,7 @@ import { notesWidget } from "./notes";
 import { petWidget } from "./pet";
 import { pomodoroWidget } from "./pomodoro";
 import { skyWidget } from "./sky";
+import { spotifyWidget } from "./spotify";
 import { weatherWidget } from "./weather";
 
 const WIDGETS = [
@@ -27,6 +28,7 @@ const WIDGETS = [
   moodWidget,
   dailyNoteWidget,
   petWidget,
+  spotifyWidget,
 ];
 
 let registered = false;

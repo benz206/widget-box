@@ -1,180 +1,342 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
 import Icon from "./ui/Icon";
 import { buttonClass } from "./ui/Button";
-import Field from "./ui/Field";
-import type { BackdropPhoto } from "@/app/api/backdrop/route";
+import {
+  BACKDROP_TOPICS,
+  CUSTOM_TOPIC,
+  fetchPhotos,
+  loadImage,
+  photoSrc,
+  pruneImages,
+  trackDownload,
+  UNSPLASH_ENABLED,
+  UNSPLASH_HOME,
+  warmImage,
+  type BackdropPhoto,
+} from "@/lib/api/unsplash";
 
 const SETTINGS_KEY = "widget-box:backdrop-settings";
+const DECK_KEY = "widget-box:backdrop-deck";
 const CHANGED_EVENT = "widget-box:backdrop-changed";
-const ROTATION_SECONDS = [30, 60, 120, 300];
-const FADE_SECONDS = [1, 2, 4, 8];
-const DEFAULT_SETTINGS = { rotation: 60, fade: 4 };
-type BackdropSettings = typeof DEFAULT_SETTINGS;
+const NEXT_EVENT = "widget-box:backdrop-next";
+const REFRESH_EVENT = "widget-box:backdrop-refresh";
+const DECK_EVENT = "widget-box:backdrop-deck-changed";
+const REFILL_BELOW = 5;
+const CACHED_AHEAD = 2;
+const PARALLAX_PX = 14;
+
+const FREQUENCY_MS = { quarter: 900_000, hour: 3_600_000, day: 86_400_000 };
+type Frequency = keyof typeof FREQUENCY_MS;
+type Motion = "still" | "drift" | "parallax";
+
+export const BACKDROP_FREQUENCIES: { value: Frequency; label: string }[] = [
+  { value: "quarter", label: "Every 15 minutes" },
+  { value: "hour", label: "Every hour" },
+  { value: "day", label: "Every day" },
+];
+
+export const BACKDROP_MOTIONS: { value: Motion; label: string }[] = [
+  { value: "parallax", label: "Drift and follow the pointer" },
+  { value: "drift", label: "Slow drift" },
+  { value: "still", label: "Still" },
+];
+
+export type BackdropSettings = {
+  topic: string;
+  query: string;
+  frequency: Frequency;
+  motion: Motion;
+  dim: number;
+  blur: number;
+};
+
+const DEFAULT_SETTINGS: BackdropSettings = {
+  topic: BACKDROP_TOPICS[0].value,
+  query: "",
+  frequency: "quarter",
+  motion: "parallax",
+  dim: 0,
+  blur: 0,
+};
+
+const clamp = (value: unknown, min: number, max: number, fallback: number) =>
+  typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
 
 function readSettings(): BackdropSettings {
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}");
     return {
-      rotation: ROTATION_SECONDS.includes(saved.rotation) ? saved.rotation : DEFAULT_SETTINGS.rotation,
-      fade: FADE_SECONDS.includes(saved.fade) ? saved.fade : DEFAULT_SETTINGS.fade,
+      topic: BACKDROP_TOPICS.some((t) => t.value === saved.topic) ? saved.topic : DEFAULT_SETTINGS.topic,
+      query: typeof saved.query === "string" ? saved.query : "",
+      frequency: saved.frequency in FREQUENCY_MS ? saved.frequency : DEFAULT_SETTINGS.frequency,
+      motion: BACKDROP_MOTIONS.some((m) => m.value === saved.motion) ? saved.motion : DEFAULT_SETTINGS.motion,
+      dim: clamp(saved.dim, 0, 80, DEFAULT_SETTINGS.dim),
+      blur: clamp(saved.blur, 0, 24, DEFAULT_SETTINGS.blur),
     };
   } catch {
     return DEFAULT_SETTINGS;
   }
 }
 
-function useBackdropSettings() {
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+export function useBackdropSettings() {
+  const [settings, setSettings] = useState(readSettings);
   useEffect(() => {
     const sync = () => setSettings(readSettings());
-    const onChange = (event: Event) => setSettings((event as CustomEvent<BackdropSettings>).detail);
-    sync();
-    window.addEventListener(CHANGED_EVENT, onChange);
+    window.addEventListener(CHANGED_EVENT, sync);
     window.addEventListener("storage", sync);
     return () => {
-      window.removeEventListener(CHANGED_EVENT, onChange);
+      window.removeEventListener(CHANGED_EVENT, sync);
       window.removeEventListener("storage", sync);
     };
   }, []);
 
   const update = (patch: Partial<BackdropSettings>) => {
-    const next = { ...settings, ...patch };
-    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); } catch { /* Keep session settings when storage is unavailable. */ }
-    window.dispatchEvent(new CustomEvent(CHANGED_EVENT, { detail: next }));
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...readSettings(), ...patch }));
+    } catch {
+      return;
+    }
+    window.dispatchEvent(new Event(CHANGED_EVENT));
   };
   return [settings, update] as const;
 }
 
-function preload(url: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const finish = (loaded: boolean) => {
-      clearTimeout(timeout);
-      img.onload = null;
-      img.onerror = null;
-      resolve(loaded);
-    };
-    const timeout = setTimeout(() => finish(false), 15_000);
-    img.onload = () => { img.decode().then(() => finish(true), () => finish(false)); };
-    img.onerror = () => finish(false);
-    img.src = url;
-  });
+export function showNextPhoto() {
+  window.dispatchEvent(new Event(NEXT_EVENT));
 }
 
-export function BackdropSettings() {
-  const [settings, update] = useBackdropSettings();
-  return (
-    <>
-      <button
-        type="button"
-        title="Background settings"
-        aria-label="Background settings"
-        popoverTarget="backdrop-settings"
-        className={buttonClass({ variant: "ghost", iconOnly: true })}
-      >
-        <Icon name="photo" size={16} />
-      </button>
-      <div id="backdrop-settings" popover="auto" className="backdrop-settings card" aria-labelledby="backdrop-settings-title">
-        <div className="flex items-center justify-between gap-4 border-b border-separator px-4 py-3">
-          <h2 id="backdrop-settings-title" className="text-[14px] font-semibold">Background</h2>
-          <button type="button" popoverTarget="backdrop-settings" popoverTargetAction="hide" aria-label="Close background settings" className={buttonClass({ variant: "ghost", size: "sm", iconOnly: true })}><Icon name="xmark" size={14} /></button>
-        </div>
-        <div className="flex flex-col gap-4 p-4">
-          <Field label="Change photo every">
-            <select className="input" value={settings.rotation} onChange={(event) => update({ rotation: Number(event.target.value) })}>
-              {ROTATION_SECONDS.map((seconds) => <option key={seconds} value={seconds}>{seconds < 60 ? `${seconds} seconds` : `${seconds / 60} ${seconds === 60 ? "minute" : "minutes"}`}</option>)}
-            </select>
-          </Field>
-          <Field label="Crossfade duration" hint="Motion follows your device’s accessibility preferences.">
-            <select className="input" value={settings.fade} onChange={(event) => update({ fade: Number(event.target.value) })}>
-              {FADE_SECONDS.map((seconds) => <option key={seconds} value={seconds}>{seconds} {seconds === 1 ? "second" : "seconds"}</option>)}
-            </select>
-          </Field>
-        </div>
-      </div>
-    </>
+export function refreshPhotos() {
+  window.dispatchEvent(new Event(REFRESH_EVENT));
+}
+
+type Deck = { source: string; current: BackdropPhoto | null; shownAt: number; queue: BackdropPhoto[] };
+
+const sourceOf = (settings: BackdropSettings) =>
+  settings.topic === CUSTOM_TOPIC ? `query:${settings.query.trim().toLowerCase()}` : settings.topic;
+
+function readDeck(source: string): Deck {
+  try {
+    const deck = JSON.parse(localStorage.getItem(DECK_KEY) ?? "null") as Deck | null;
+    if (deck?.source === source && Array.isArray(deck.queue)) return deck;
+  } catch {
+    localStorage.removeItem(DECK_KEY);
+  }
+  return { source, current: null, shownAt: 0, queue: [] };
+}
+
+function writeDeck(deck: Deck) {
+  try {
+    localStorage.setItem(DECK_KEY, JSON.stringify(deck));
+  } catch {
+    return;
+  }
+  window.dispatchEvent(new Event(DECK_EVENT));
+}
+
+export function useQueuedPhotos(): number {
+  const [count, setCount] = useState(() => readDeck(sourceOf(readSettings())).queue.length);
+  useEffect(() => {
+    const sync = () => setCount(readDeck(sourceOf(readSettings())).queue.length);
+    window.addEventListener(DECK_EVENT, sync);
+    window.addEventListener(CHANGED_EVENT, sync);
+    return () => {
+      window.removeEventListener(DECK_EVENT, sync);
+      window.removeEventListener(CHANGED_EVENT, sync);
+    };
+  }, []);
+  return count;
+}
+
+let refilling: Promise<Deck> | null = null;
+
+function refill(settings: BackdropSettings): Promise<Deck> {
+  const source = sourceOf(settings);
+  refilling ??= fetchPhotos(settings.topic, settings.query)
+    .then((photos) => {
+      const deck = readDeck(source);
+      const seen = new Set([deck.current?.id, ...deck.queue.map((p) => p.id)]);
+      const next = { ...deck, queue: [...deck.queue, ...photos.filter((p) => !seen.has(p.id))] };
+      writeDeck(next);
+      return next;
+    })
+    .finally(() => {
+      refilling = null;
+    });
+  return refilling;
+}
+
+function advance(deck: Deck): Deck | null {
+  const [next, ...queue] = deck.queue;
+  if (!next) return null;
+  trackDownload(next);
+  const advanced = { ...deck, current: next, queue, shownAt: Date.now() };
+  writeDeck(advanced);
+  return advanced;
+}
+
+const isDue = (deck: Deck, frequency: Frequency) =>
+  !deck.current || Date.now() - deck.shownAt >= FREQUENCY_MS[frequency];
+
+function decode(src: string): Promise<boolean> {
+  const img = new Image();
+  img.src = src;
+  return img.decode().then(
+    () => true,
+    () => false
   );
+}
+
+type Layer = { photo: BackdropPhoto; src: string; fadeMs: number };
+
+function useParallax(enabled: boolean) {
+  const stageRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!enabled || !stage || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let frame = 0;
+    const move = (x: number, y: number) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        stage.style.setProperty("--px", `${x * -PARALLAX_PX}px`);
+        stage.style.setProperty("--py", `${y * -PARALLAX_PX}px`);
+      });
+    };
+    const onMove = (e: PointerEvent) => move(e.clientX / innerWidth - 0.5, e.clientY / innerHeight - 0.5);
+    const onLeave = () => move(0, 0);
+    window.addEventListener("pointermove", onMove);
+    document.documentElement.addEventListener("pointerleave", onLeave);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("pointermove", onMove);
+      document.documentElement.removeEventListener("pointerleave", onLeave);
+      stage.style.removeProperty("--px");
+      stage.style.removeProperty("--py");
+    };
+  }, [enabled]);
+  return stageRef;
 }
 
 export default function Backdrop() {
   const [settings] = useBackdropSettings();
-  const nextIndex = useRef(0);
-  const started = useRef(false);
-  const [photos, setPhotos] = useState<BackdropPhoto[]>([]);
-  const [shown, setShown] = useState<BackdropPhoto[]>([]);
+  const [placeholder] = useState(() => readDeck(sourceOf(readSettings())).current?.color);
+  const [layers, setLayers] = useState<Layer[]>([]);
+  const layersRef = useRef<Layer[]>([]);
+  const stageRef = useParallax(settings.motion === "parallax");
+  const current = layers.at(-1)?.photo;
+  const source = sourceOf(settings);
+  const { topic, query, frequency } = settings;
 
   useEffect(() => {
-
+    if (!UNSPLASH_ENABLED) return;
     let cancelled = false;
-    fetch("/api/backdrop")
-      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
-      .then((list: BackdropPhoto[]) => {
-        if (!cancelled && list.length) setPhotos(list);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    const live = { topic, query, frequency } as BackdropSettings;
 
-  useEffect(() => {
-    if (!photos.length) return;
-    let cancelled = false;
-    let index = nextIndex.current;
-    let pending = preload(photos[index].url);
-
-    const show = async () => {
-      if (document.hidden) return;
-      const loaded = await pending;
-      if (cancelled) return;
-      const photo = photos[index];
-      if (loaded) {
-        setShown((prev) =>
-          prev.at(-1)?.id === photo.id ? prev : [...prev.slice(-1), photo]
-        );
+    const show = async (photo: BackdropPhoto) => {
+      if (layersRef.current.at(-1)?.photo.id === photo.id) return;
+      const src = await loadImage(photoSrc(photo));
+      if (!src) return;
+      if (cancelled || !(await decode(src))) {
+        URL.revokeObjectURL(src);
+        return;
       }
-      // Failed images leave the current photo intact. Try the next on the next tick.
-      started.current = true;
-      index = (index + 1) % photos.length;
-      nextIndex.current = index;
-      pending = preload(photos[index].url);
+      const previous = layersRef.current;
+      previous.slice(0, -1).forEach((layer) => URL.revokeObjectURL(layer.src));
+      const next = [...previous.slice(-1), { photo, src, fadeMs: previous.length ? 1600 : 500 }];
+      layersRef.current = next;
+      setLayers(next);
     };
-    if (!started.current) void show();
-    const timer = setInterval(() => { void show(); }, settings.rotation * 1000);
 
+    const step = async (force: boolean) => {
+      let deck = readDeck(source);
+      if (force || isDue(deck, frequency)) {
+        if (!deck.queue.length) deck = await refill(live).catch(() => deck);
+        deck = advance(deck) ?? deck;
+      }
+      if (cancelled) return;
+      if (deck.current) await show(deck.current);
+      if (deck.queue.length < REFILL_BELOW) deck = await refill(live).catch(() => deck);
+      const ahead = deck.queue.slice(0, CACHED_AHEAD);
+      await Promise.all(ahead.map((photo) => warmImage(photoSrc(photo))));
+      void pruneImages([deck.current, ...ahead].filter((p) => p !== null).map(photoSrc));
+    };
+
+    void step(false);
+    const onNext = () => void step(true);
+    const onRefresh = async () => {
+      writeDeck({ ...readDeck(source), queue: [] });
+      await refill(live).catch(() => undefined);
+      void step(true);
+    };
+    const timer = setInterval(() => {
+      if (!document.hidden && isDue(readDeck(source), frequency)) void step(false);
+    }, 60_000);
+    window.addEventListener(NEXT_EVENT, onNext);
+    window.addEventListener(REFRESH_EVENT, onRefresh);
     return () => {
       cancelled = true;
       clearInterval(timer);
+      window.removeEventListener(NEXT_EVENT, onNext);
+      window.removeEventListener(REFRESH_EVENT, onRefresh);
     };
-  }, [photos, settings.rotation]);
+  }, [source, topic, query, frequency]);
 
-  if (!shown.length) return null;
-  const current = shown[shown.length - 1];
+  const color = current?.color ?? placeholder;
+
+  useEffect(() => {
+    if (color) document.documentElement.dataset.backdrop = "photo";
+  }, [color]);
+
+  if (!color) return null;
 
   return (
     <>
-      <div aria-hidden className="backdrop">
-        {shown.map((photo) => (
-          <div
-            key={photo.id}
-            className="backdrop-layer"
-            style={{ backgroundImage: `url("${photo.url}")`, animationDuration: `${settings.fade}s, ${settings.rotation + settings.fade}s` }}
-          />
-        ))}
+      <div
+        aria-hidden
+        className="backdrop"
+        data-motion={settings.motion}
+        style={
+          {
+            backgroundColor: color,
+            "--bd-dim": settings.dim / 100,
+            "--bd-blur": `${settings.blur}px`,
+          } as React.CSSProperties
+        }
+      >
+        <div ref={stageRef} className="backdrop-stage">
+          {layers.map(({ photo, src, fadeMs }) => (
+            <div
+              key={photo.id}
+              className="backdrop-layer"
+              style={{ backgroundImage: `url("${src}")`, animationDuration: `${fadeMs}ms, 80s` }}
+            />
+          ))}
+        </div>
         <div className="backdrop-scrim" />
       </div>
-      <a
-        href={current.link}
-        target="_blank"
-        rel="noopener noreferrer"
-        title={current.alt}
-        className="backdrop-credit focus-ring"
-      >
-        <Icon name="photo" size={13} />
-        Landscapes by Lorem Picsum
-      </a>
+      {current && (
+        <div key={current.id} className="backdrop-credit animate-fade-in" title={current.alt}>
+          <span className="truncate">
+            Photo by{" "}
+            <a href={current.authorUrl} target="_blank" rel="noopener noreferrer" className="focus-ring">
+              {current.author}
+            </a>{" "}
+            on{" "}
+            <a href={UNSPLASH_HOME} target="_blank" rel="noopener noreferrer" className="focus-ring">
+              Unsplash
+            </a>
+            {current.location && <span className="backdrop-location"> · {current.location}</span>}
+          </span>
+          <button
+            type="button"
+            title="Show another photo"
+            aria-label="Show another photo"
+            onClick={showNextPhoto}
+            className={buttonClass({ variant: "ghost", size: "sm", iconOnly: true })}
+          >
+            <Icon name="reset" size={13} />
+          </button>
+        </div>
+      )}
     </>
   );
 }

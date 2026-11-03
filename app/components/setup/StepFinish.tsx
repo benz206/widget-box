@@ -1,5 +1,3 @@
-"use client";
-
 import Badge from "@/app/components/ui/Badge";
 import Icon from "@/app/components/ui/Icon";
 import { getWidgetById } from "@/lib/widgets/registry";

@@ -1,6 +1,4 @@
-"use client";
-
-import type { WeatherResponse } from "@/app/api/weather/route";
+import { fetchWeather, type WeatherResponse } from "@/lib/api/weather";
 import {
   MoonGlyph,
   useNow,
@@ -24,7 +22,8 @@ function SkyView({ size, config }: WidgetViewProps) {
   const city = String(config.city || "").trim();
   const now = useNow(60_000);
   const { data, error, loading } = useRemote<WeatherResponse>(
-    city ? `/api/weather?q=${encodeURIComponent(city)}` : null,
+    city ? `weather:${city}` : null,
+    (signal) => fetchWeather(city, signal),
     REFRESH_MS
   );
 

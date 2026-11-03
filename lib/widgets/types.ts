@@ -40,6 +40,16 @@ export type ConfigField =
       help?: string;
     }
   | {
+      kind: "range";
+      key: string;
+      label: string;
+      min: number;
+      max: number;
+      step?: number;
+      unit?: string;
+      help?: string;
+    }
+  | {
       kind: "number";
       key: string;
       label: string;
