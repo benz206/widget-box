@@ -40,11 +40,9 @@ export function useProgress(track: NowPlaying): number {
   return Math.min(track.durationMs, track.progressMs + elapsed);
 }
 
-export type AlbumColor = { tint: string; accent: string };
+const albumGlows = new Map<string, string>();
 
-const albumColors = new Map<string, AlbumColor>();
-
-function sampleColor(url: string): Promise<AlbumColor | null> {
+function sampleGlow(url: string): Promise<string | null> {
   const img = new Image();
   img.crossOrigin = "anonymous";
   img.src = url;
@@ -67,12 +65,9 @@ function sampleColor(url: string): Promise<AlbumColor | null> {
         total += weight;
       }
       const [h, s] = toHueSaturation(r / total, g / total, b / total);
-      const color = {
-        tint: `hsl(${h} ${Math.min(s, 60)}% 24%)`,
-        accent: `hsl(${h} ${Math.max(s, 45)}% 55%)`,
-      };
-      albumColors.set(url, color);
-      return color;
+      const glow = `0 8px 22px -6px hsl(${h} ${Math.max(s, 40)}% 50% / 0.65)`;
+      albumGlows.set(url, glow);
+      return glow;
     },
     () => null
   );
@@ -91,18 +86,18 @@ function toHueSaturation(r: number, g: number, b: number): [number, number] {
   return [Math.round((h * 60 + 360) % 360), Math.round(s * 100)];
 }
 
-export function useAlbumColor(url: string | null): AlbumColor | null {
-  const [sampled, setSampled] = useState<{ url: string; color: AlbumColor | null } | null>(null);
+export function useAlbumGlow(url: string | null): string | undefined {
+  const [sampled, setSampled] = useState<{ url: string; glow: string | null } | null>(null);
   useEffect(() => {
-    if (!url || albumColors.has(url)) return;
+    if (!url || albumGlows.has(url)) return;
     let cancelled = false;
-    sampleColor(url).then((color) => !cancelled && setSampled({ url, color }));
+    sampleGlow(url).then((glow) => !cancelled && setSampled({ url, glow }));
     return () => {
       cancelled = true;
     };
   }, [url]);
-  if (!url) return null;
-  return albumColors.get(url) ?? (sampled?.url === url ? sampled.color : null);
+  if (!url) return undefined;
+  return albumGlows.get(url) ?? (sampled?.url === url ? sampled.glow ?? undefined : undefined);
 }
 
 function Connect() {
@@ -129,11 +124,13 @@ function Connect() {
 }
 
 function Art({ track, className }: { track: NowPlaying; className?: string }) {
+  const glow = useAlbumGlow(track.art);
   return track.art ? (
     <img
       src={track.art}
       alt=""
       draggable={false}
+      style={{ boxShadow: glow, transition: "box-shadow 600ms ease" }}
       className={`aspect-square rounded-md object-cover ${track.playing ? "" : "opacity-60"} ${className ?? ""}`}
     />
   ) : (
@@ -141,7 +138,7 @@ function Art({ track, className }: { track: NowPlaying; className?: string }) {
   );
 }
 
-function Progress({ track, color, times }: { track: NowPlaying; color: string; times?: boolean }) {
+function Progress({ track, times }: { track: NowPlaying; times?: boolean }) {
   const progress = useProgress(track);
   return (
     <div>
@@ -150,8 +147,7 @@ function Progress({ track, color, times }: { track: NowPlaying; color: string; t
           className="h-full rounded-full"
           style={{
             width: `${(progress / track.durationMs) * 100}%`,
-            background: color,
-            transition: "background-color 600ms ease",
+            background: ACCENT,
           }}
         />
       </div>
@@ -178,7 +174,6 @@ function Titles({ track, large }: { track: NowPlaying; large?: boolean }) {
 
 function SpotifyView({ size }: WidgetViewProps) {
   const { connected, data: track, error, loading } = useNowPlaying();
-  const accent = useAlbumColor(track?.art ?? null)?.accent ?? ACCENT;
 
   if (!connected || !track) {
     return (
@@ -200,7 +195,7 @@ function SpotifyView({ size }: WidgetViewProps) {
       <div className="flex h-full w-full flex-col justify-between gap-2">
         <Art track={track} className="h-14" />
         <Titles track={track} />
-        <Progress track={track} color={accent} />
+        <Progress track={track} />
       </div>
     );
   }
@@ -210,9 +205,9 @@ function SpotifyView({ size }: WidgetViewProps) {
       <div className="flex h-full w-full items-center gap-3">
         <Art track={track} className="h-full" />
         <div className="flex h-full min-w-0 flex-1 flex-col justify-between">
-          <WidgetHeader icon="music" label={track.playing ? "Now playing" : "Paused"} accent={accent} />
+          <WidgetHeader icon="music" label={track.playing ? "Now playing" : "Paused"} accent={ACCENT} />
           <Titles track={track} large />
-          <Progress track={track} color={accent} times />
+          <Progress track={track} times />
         </div>
       </div>
     );
@@ -224,7 +219,7 @@ function SpotifyView({ size }: WidgetViewProps) {
         <Art track={track} className="h-full" />
       </div>
       <Titles track={track} large />
-      <Progress track={track} color={accent} times />
+      <Progress track={track} times />
     </div>
   );
 }
