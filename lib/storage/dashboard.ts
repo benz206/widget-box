@@ -28,6 +28,7 @@ export type DashboardPreferences = {
   showSearch?: boolean;
   tileOpacity?: number;
   tileBlur?: number;
+  nowPlaying?: "corner" | "widget";
 };
 
 export const DISPLAY_DEFAULTS = {
@@ -38,6 +39,7 @@ export const DISPLAY_DEFAULTS = {
   showSearch: true,
   tileOpacity: 70,
   tileBlur: 28,
+  nowPlaying: "corner",
 } satisfies DashboardPreferences;
 
 export type DashboardState = {

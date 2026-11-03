@@ -10,11 +10,19 @@ import {
 import Button from "./ui/Button";
 import ConfigForm from "./ui/ConfigForm";
 import Field from "./ui/Field";
-import Icon from "./ui/Icon";
+import Icon, { type IconName } from "./ui/Icon";
 import Segmented from "./ui/Segmented";
 import useDismiss from "./ui/useDismiss";
 import { applyAppearance, readAppearance, type Appearance } from "./ui/appearance";
 import { clearCache } from "@/lib/api/cache";
+import {
+  connectSpotify,
+  disconnectSpotify,
+  SPOTIFY_CAN_CONNECT,
+  SPOTIFY_ENABLED,
+} from "@/lib/api/spotify";
+import { apiKey, saveApiKey } from "@/lib/storage/keys";
+import { useSpotifyConnected } from "@/lib/widgets/system/spotify";
 import { BACKDROP_TOPICS, CUSTOM_TOPIC, imageCacheStats, UNSPLASH_ENABLED } from "@/lib/api/unsplash";
 import { useUsage } from "@/lib/api/usage";
 import { DISPLAY_DEFAULTS, type DashboardPreferences } from "@/lib/storage/dashboard";
@@ -45,7 +53,19 @@ const BACKDROP_FIELDS: ConfigField[] = [
   { kind: "range", key: "blur", label: "Blur", min: 0, max: 24, unit: "px" },
 ];
 
-const APPEARANCES: { value: Appearance; label: string }[] = [
+const NOW_PLAYING_FIELDS: ConfigField[] = [
+  {
+    kind: "select",
+    key: "nowPlaying",
+    label: "Show now playing",
+    options: [
+      { value: "corner", label: "As a card in the bottom-right corner" },
+      { value: "widget", label: "Only in the Spotify widget" },
+    ],
+  },
+];
+
+const APPEARANCES:{ value: Appearance; label: string }[] = [
   { value: "system", label: "System" },
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
@@ -73,6 +93,64 @@ function CustomQuery({ value, onCommit }: { value: string; onCommit: (query: str
         onKeyDown={(e) => e.key === "Enter" && commit()}
       />
     </Field>
+  );
+}
+
+function KeyField({
+  label,
+  hint,
+  value,
+  onCommit,
+}: {
+  label: string;
+  hint: React.ReactNode;
+  value: string;
+  onCommit: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const commit = () => draft.trim() !== value && onCommit(draft.trim());
+  return (
+    <Field label={label} hint={hint}>
+      <input
+        type="text"
+        className="input"
+        value={draft}
+        spellCheck={false}
+        autoComplete="off"
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === "Enter" && commit()}
+      />
+    </Field>
+  );
+}
+
+function SpotifyConnection() {
+  const connected = useSpotifyConnected();
+  const [error, setError] = useState<string | null>(null);
+  if (!SPOTIFY_ENABLED) return null;
+  if (connected) {
+    return (
+      <Button className="self-start" onClick={disconnectSpotify}>
+        <Icon name="logout" size={14} />
+        Disconnect Spotify
+      </Button>
+    );
+  }
+  if (!SPOTIFY_CAN_CONNECT) return null;
+  return (
+    <div className="flex flex-col items-start gap-2">
+      <Button
+        onClick={() => {
+          setError(null);
+          connectSpotify().catch((err: Error) => setError(err.message));
+        }}
+      >
+        <Icon name="music" size={14} />
+        Connect Spotify
+      </Button>
+      {error && <p className="text-[12px] text-secondary">{error}</p>}
+    </div>
   );
 }
 
@@ -147,6 +225,16 @@ function UsagePanel() {
   );
 }
 
+type Tab = "general" | "widgets" | "background" | "spotify" | "usage";
+
+const TABS: { id: Tab; label: string; icon: IconName; description: string }[] = [
+  { id: "general", label: "General", icon: "clock", description: "The clock, greeting, and how the page looks." },
+  { id: "widgets", label: "Widgets", icon: "grid", description: "How tiles sit on top of the photo." },
+  { id: "background", label: "Background", icon: "photo", description: "Photos from Unsplash behind everything." },
+  { id: "spotify", label: "Spotify", icon: "music", description: "Show what you're listening to." },
+  { id: "usage", label: "Usage", icon: "chart", description: "Requests made to each service and their limits." },
+];
+
 export default function Settings({
   preferences,
   onChange,
@@ -160,8 +248,10 @@ export default function Settings({
 }) {
   const [backdrop, updateBackdrop] = useBackdropSettings();
   const [appearance, setAppearance] = useState(readAppearance);
+  const [tab, setTab] = useState<Tab>("general");
   const [closing, dismiss] = useDismiss(onClose);
   const display = { ...DISPLAY_DEFAULTS, ...preferences };
+  const current = TABS.find((t) => t.id === tab)!;
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => e.key === "Escape" && dismiss();
@@ -172,102 +262,163 @@ export default function Settings({
   return (
     <div
       onPointerDown={(e) => e.target === e.currentTarget && dismiss()}
-      className="drawer-scrim drawer-scrim--clear animate-fade-in"
+      className="sheet-scrim animate-fade-in"
       data-closing={closing || undefined}
     >
-      <aside role="dialog" aria-modal="true" aria-labelledby="settings-title" className="drawer card">
-        <header className="drawer-header">
-          <span className="icon-tile">
-            <Icon name="gear" size={16} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 id="settings-title">Settings</h2>
-            <p>Changes apply as you make them</p>
-          </div>
-          <Button variant="ghost" size="sm" iconOnly autoFocus onClick={dismiss} aria-label="Close">
-            <Icon name="xmark" size={14} />
-          </Button>
-        </header>
-
-        <div className="drawer-body">
-          <section>
-            <h3 className="drawer-section-title">Clock and greeting</h3>
-            <ConfigForm fields={HEADER_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
-          </section>
-
-          <section>
-            <h3 className="drawer-section-title">Widgets</h3>
-            <ConfigForm fields={WIDGET_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
-          </section>
-
-          <section>
-            <h3 className="drawer-section-title">Background</h3>
-            {UNSPLASH_ENABLED ? (
-              <div className="flex flex-col gap-4">
-                <ConfigForm fields={PHOTO_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
-                {backdrop.topic === CUSTOM_TOPIC && (
-                  <CustomQuery value={backdrop.query} onCommit={(query) => updateBackdrop({ query })} />
-                )}
-                <ConfigForm fields={BACKDROP_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={showNextPhoto}>
-                    <Icon name="chevronRight" size={14} />
-                    Next photo
-                  </Button>
-                  <Button onClick={refreshPhotos} title="Drop the queue and fetch a fresh set">
-                    <Icon name="reset" size={14} />
-                    Fetch new photos
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <p className="callout" data-tone="warning">
-                <Icon name="alert" size={14} />
-                Photos are off. Add VITE_UNSPLASH_ACCESS_KEY to .env.local and rebuild.
-              </p>
-            )}
-          </section>
-
-          <section>
-            <h3 className="drawer-section-title">Appearance</h3>
-            <Segmented
-              options={APPEARANCES}
-              value={appearance}
-              onChange={(next) => {
-                setAppearance(next);
-                applyAppearance(next);
-              }}
-              className="w-full"
-            />
-          </section>
-
-          <section>
-            <h3 className="drawer-section-title">Usage and limits</h3>
-            <UsagePanel />
-            <Button
-              className="mt-4"
-              onClick={() => {
-                clearCache();
-                location.reload();
-              }}
+      <div role="dialog" aria-modal="true" aria-labelledby="settings-title" className="settings card animate-sheet-in">
+        <nav className="settings-nav" aria-label="Settings sections">
+          <h2 id="settings-title">Settings</h2>
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              aria-current={t.id === tab ? "page" : undefined}
+              onClick={() => setTab(t.id)}
+              className="settings-nav-item focus-ring"
             >
-              <Icon name="reset" size={14} />
-              Refresh widget data
-            </Button>
-          </section>
+              <Icon name={t.icon} size={15} />
+              {t.label}
+            </button>
+          ))}
+        </nav>
 
-          <section>
-            <h3 className="drawer-section-title">Dashboard</h3>
-            <p className="mb-3 text-[13px] text-secondary text-pretty">
-              Start again from a preset, with your name, timezone, and city.
-            </p>
-            <Button onClick={onRunSetup}>
-              <Icon name="wand" size={14} />
-              Run setup again
+        <div className="settings-pane">
+          <header className="settings-pane-header">
+            <div className="min-w-0 flex-1">
+              <h3>{current.label}</h3>
+              <p>{current.description}</p>
+            </div>
+            <Button variant="ghost" size="sm" iconOnly autoFocus onClick={dismiss} aria-label="Close">
+              <Icon name="xmark" size={14} />
             </Button>
-          </section>
+          </header>
+
+          <div key={tab} className="settings-pane-body animate-fade-in">
+            {tab === "general" && (
+              <>
+                <section>
+                  <h4 className="drawer-section-title">Clock and greeting</h4>
+                  <ConfigForm fields={HEADER_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
+                </section>
+                <section>
+                  <h4 className="drawer-section-title">Appearance</h4>
+                  <Segmented
+                    options={APPEARANCES}
+                    value={appearance}
+                    onChange={(next) => {
+                      setAppearance(next);
+                      applyAppearance(next);
+                    }}
+                    className="w-full"
+                  />
+                </section>
+                <section>
+                  <h4 className="drawer-section-title">Dashboard</h4>
+                  <p className="mb-3 text-[13px] text-secondary text-pretty">
+                    Start again from a preset, with your name, timezone, and city.
+                  </p>
+                  <Button onClick={onRunSetup}>
+                    <Icon name="wand" size={14} />
+                    Run setup again
+                  </Button>
+                </section>
+              </>
+            )}
+
+            {tab === "widgets" && (
+              <section>
+                <ConfigForm fields={WIDGET_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
+              </section>
+            )}
+
+            {tab === "background" && (
+              <>
+                <section>
+                  <KeyField
+                    label="Unsplash access key"
+                    hint="From unsplash.com/developers. Saving reloads the page."
+                    value={apiKey("unsplash") ?? ""}
+                    onCommit={(value) => {
+                      saveApiKey("unsplash", value);
+                      location.reload();
+                    }}
+                  />
+                </section>
+                {UNSPLASH_ENABLED ? (
+                  <section className="flex flex-col gap-4">
+                    <ConfigForm fields={PHOTO_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
+                    {backdrop.topic === CUSTOM_TOPIC && (
+                      <CustomQuery value={backdrop.query} onCommit={(query) => updateBackdrop({ query })} />
+                    )}
+                    <ConfigForm fields={BACKDROP_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={showNextPhoto}>
+                        <Icon name="chevronRight" size={14} />
+                        Next photo
+                      </Button>
+                      <Button onClick={refreshPhotos} title="Drop the queue and fetch a fresh set">
+                        <Icon name="reset" size={14} />
+                        Fetch new photos
+                      </Button>
+                    </div>
+                  </section>
+                ) : (
+                  <p className="callout" data-tone="warning">
+                    <Icon name="alert" size={14} />
+                    Photos are off until you add an access key.
+                  </p>
+                )}
+              </>
+            )}
+
+            {tab === "spotify" && (
+              <>
+                <section className="flex flex-col gap-4">
+                  <KeyField
+                    label="Spotify client ID"
+                    hint={
+                      SPOTIFY_CAN_CONNECT ? (
+                        <>
+                          From developer.spotify.com. Add <code>{chrome.identity.getRedirectURL()}</code> as a
+                          redirect URI. Saving reloads the page.
+                        </>
+                      ) : (
+                        "From developer.spotify.com. Saving reloads the page."
+                      )
+                    }
+                    value={apiKey("spotify") ?? ""}
+                    onCommit={(value) => {
+                      saveApiKey("spotify", value);
+                      disconnectSpotify();
+                      location.reload();
+                    }}
+                  />
+                  <SpotifyConnection />
+                </section>
+                <section>
+                  <ConfigForm fields={NOW_PLAYING_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
+                </section>
+              </>
+            )}
+
+            {tab === "usage" && (
+              <section>
+                <UsagePanel />
+                <Button
+                  className="mt-4"
+                  onClick={() => {
+                    clearCache();
+                    location.reload();
+                  }}
+                >
+                  <Icon name="reset" size={14} />
+                  Refresh widget data
+                </Button>
+              </section>
+            )}
+          </div>
         </div>
-      </aside>
+      </div>
     </div>
   );
 }

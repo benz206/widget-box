@@ -134,6 +134,13 @@ const paths: Record<string, React.ReactNode> = {
       <path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" stroke="none" />
     </>
   ),
+  music: (
+    <>
+      <path d="M9 18V5.5l11-2V16" />
+      <circle cx="6.5" cy="18" r="2.5" />
+      <circle cx="17.5" cy="16" r="2.5" />
+    </>
+  ),
   play: <path d="M8 5.5 18 12 8 18.5Z" />,
   pause: <path d="M9 5.5v13M15 5.5v13" />,
   reset: (

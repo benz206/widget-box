@@ -6,12 +6,19 @@ that you rearrange yourself.
 
 ```bash
 bun install
-echo "VITE_UNSPLASH_ACCESS_KEY=<your access key>" > .env.local
 bun run build
 ```
 
 Then open `chrome://extensions`, turn on **Developer mode**, choose **Load
 unpacked**, and pick the `dist` folder. It works the same in Edge, Brave, and Arc.
+
+API keys are entered under **Settings → Connections** and kept in
+`localStorage`. For your own builds, `.env.local` can supply defaults
+(`VITE_UNSPLASH_ACCESS_KEY`, `VITE_SPOTIFY_CLIENT_ID`); these are compiled into
+the bundle, so leave them out of anything you hand to other people.
+
+The manifest carries a fixed `key`, so the extension ID is always
+`llankfngdeihcpaihlahfkalpmpkhlml` wherever `dist` is loaded from.
 
 While working on it, `bun run watch` rebuilds `dist` on save; press reload on
 the extension's card and open a new tab. `bun dev` serves the page at
@@ -71,9 +78,9 @@ readable message inside the tile rather than to an empty box.
 
 ## Backdrop
 
-Photos come from [Unsplash](https://unsplash.com) using the access key in
-`.env.local`, which is compiled into the bundle — fine for your own install,
-not for publishing. Without a key the page falls back to the plain gradient.
+Photos come from [Unsplash](https://unsplash.com) using the access key from
+Settings (or `.env.local`). Without a key the page falls back to the plain
+gradient.
 
 `lib/api/unsplash.ts` asks for 30 random landscape photos at a time — from a
 curated topic, a mix, or your own search — and keeps them as a queue in
@@ -93,6 +100,17 @@ and Yahoo got today.
 Per Unsplash's guidelines, images are hotlinked from their CDN, the credit names
 and links the photographer and Unsplash, and the download endpoint is pinged
 whenever a photo is shown.
+
+## Spotify
+
+The Spotify widget and the bottom-right "now playing" line read
+`/me/player/currently-playing` every 5 seconds while the tab is visible. Each
+user creates an app at <https://developer.spotify.com/dashboard>, adds
+`https://llankfngdeihcpaihlahfkalpmpkhlml.chromiumapp.org/` as a redirect URI,
+and pastes its client ID into Settings. Sign-in uses PKCE through
+`chrome.identity`, so no client secret is involved and it only works inside the
+extension, not under `bun dev`. Apps in Spotify's development mode only accept
+accounts added to the app's user list.
 
 ## Appearance
 

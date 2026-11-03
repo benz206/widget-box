@@ -1,6 +1,7 @@
+import { apiKey } from "@/lib/storage/keys";
 import { recordRequest } from "./usage";
 
-const ACCESS_KEY = import.meta.env.VITE_UNSPLASH_ACCESS_KEY as string | undefined;
+const ACCESS_KEY = apiKey("unsplash");
 const API = "https://api.unsplash.com";
 const UTM = "utm_source=widget_box&utm_medium=referral";
 const IMAGE_CACHE = "widget-box:photos";
