@@ -4,6 +4,7 @@ import { buttonClass } from "./ui/Button";
 import {
   BACKDROP_TOPICS,
   CUSTOM_TOPIC,
+  FAVORITES_TOPIC,
   fetchPhotos,
   loadImage,
   photoSrc,
@@ -21,6 +22,8 @@ const CHANGED_EVENT = "widget-box:backdrop-changed";
 const NEXT_EVENT = "widget-box:backdrop-next";
 const REFRESH_EVENT = "widget-box:backdrop-refresh";
 const DECK_EVENT = "widget-box:backdrop-deck-changed";
+const FAVORITES_KEY = "widget-box:backdrop-favorites";
+const FAVORITES_EVENT = "widget-box:backdrop-favorites-changed";
 const REFILL_BELOW = 5;
 const CACHED_AHEAD = 2;
 const PARALLAX_PX = 14;
@@ -147,15 +150,64 @@ export function useQueuedPhotos(): number {
   return count;
 }
 
+function readFavorites(): BackdropPhoto[] {
+  try {
+    const favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY) ?? "[]");
+    return Array.isArray(favorites) ? favorites : [];
+  } catch {
+    return [];
+  }
+}
+
+export function toggleFavorite(photo: BackdropPhoto) {
+  const favorites = readFavorites();
+  const next = favorites.some((p) => p.id === photo.id)
+    ? favorites.filter((p) => p.id !== photo.id)
+    : [photo, ...favorites];
+  try {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+  } catch {
+    return;
+  }
+  window.dispatchEvent(new Event(FAVORITES_EVENT));
+}
+
+export function useFavorites(): BackdropPhoto[] {
+  const [favorites, setFavorites] = useState(readFavorites);
+  useEffect(() => {
+    const sync = () => setFavorites(readFavorites());
+    window.addEventListener(FAVORITES_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(FAVORITES_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+  return favorites;
+}
+
+function shuffled<T>(items: T[]): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 let refilling: Promise<Deck> | null = null;
 
 function refill(settings: BackdropSettings): Promise<Deck> {
   const source = sourceOf(settings);
-  refilling ??= fetchPhotos(settings.topic, settings.query)
+  const favoritesOnly = settings.topic === FAVORITES_TOPIC;
+  const fetching = () =>
+    favoritesOnly ? Promise.resolve(shuffled(readFavorites())) : fetchPhotos(settings.topic, settings.query);
+  refilling ??= fetching()
     .then((photos) => {
       const deck = readDeck(source);
-      const seen = new Set([deck.current?.id, ...deck.queue.map((p) => p.id)]);
-      const next = { ...deck, queue: [...deck.queue, ...photos.filter((p) => !seen.has(p.id))] };
+      const queue = favoritesOnly ? deck.queue.filter((p) => photos.some((f) => f.id === p.id)) : deck.queue;
+      const seen = new Set([deck.current?.id, ...queue.map((p) => p.id)]);
+      const next = { ...deck, queue: [...queue, ...photos.filter((p) => !seen.has(p.id))] };
       writeDeck(next);
       return next;
     })
@@ -218,6 +270,7 @@ function useParallax(enabled: boolean) {
 
 export default function Backdrop() {
   const [settings] = useBackdropSettings();
+  const favorites = useFavorites();
   const [placeholder] = useState(() => readDeck(sourceOf(readSettings())).current?.color);
   const [layers, setLayers] = useState<Layer[]>([]);
   const layersRef = useRef<Layer[]>([]);
@@ -326,6 +379,16 @@ export default function Backdrop() {
             </a>
             {current.location && <span className="backdrop-location"> · {current.location}</span>}
           </span>
+          <button
+            type="button"
+            title={favorites.some((p) => p.id === current.id) ? "Remove from favorites" : "Add to favorites"}
+            aria-label="Favorite this photo"
+            aria-pressed={favorites.some((p) => p.id === current.id)}
+            onClick={() => toggleFavorite(current)}
+            className={buttonClass({ variant: "ghost", size: "sm", iconOnly: true }, "favorite-btn")}
+          >
+            <Icon name="heart" size={13} />
+          </button>
           <button
             type="button"
             title="Show another photo"

@@ -1,16 +1,15 @@
 import type { NowPlaying as Track } from "@/lib/api/spotify";
-import { useAlbumColor, useNowPlaying, useProgress } from "@/lib/widgets/system/spotify";
+import { useAlbumGlow, useNowPlaying, useProgress } from "@/lib/widgets/system/spotify";
 
 function Card({ track }: { track: Track }) {
   const progress = useProgress(track);
-  const color = useAlbumColor(track.art);
+  const glow = useAlbumGlow(track.art);
   return (
     <div
-      className="now-playing animate-fade-in"
+      className="now-playing material animate-fade-in"
       data-paused={track.playing ? undefined : true}
-      style={color ? { background: color.tint } : undefined}
     >
-      {track.art && <img src={track.art} alt="" />}
+      {track.art && <img src={track.art} alt="" style={{ boxShadow: glow }} />}
       <div className="now-playing-text">
         <strong className="truncate">{track.title}</strong>
         <span className="truncate">{track.artist}</span>

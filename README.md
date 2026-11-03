@@ -90,6 +90,10 @@ screen and the next two are stored in Cache Storage, so opening a tab reads them
 from disk rather than the network; anything else is pruned. The queue refills in
 the background when it runs low.
 
+The ♥ by the credit saves the photo on screen to favorites (kept in
+`localStorage`), and **Your favorites** as the photo source shuffles through
+them without calling Unsplash at all.
+
 Settings also cover motion (a slow drift, optionally following the pointer),
 dim, and blur, plus widget opacity and frost. **Next photo** and the ↻ by the
 credit skip ahead; **Fetch new photos** drops the queue for a fresh set.
@@ -113,6 +117,10 @@ extension, not under `bun dev`. Apps in Spotify's development mode only accept
 accounts added to the app's user list.
 
 ## Appearance
+
+Settings → General picks a layout: **Centered**, **Left** (the clock,
+search, and grid aligned left), or **Split** (the clock and search in a
+sticky column beside the grid, from 960px up).
 
 Light and dark are both first-class. Colours are semantic tokens (`--label`,
 `--fill`, `--separator`, …) defined in `app/globals.css` rather than
