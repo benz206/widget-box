@@ -209,6 +209,33 @@ const paths: Record<string, React.ReactNode> = {
   exchange: <path d="M4 8.5h15l-4-4M20 15.5H5l4 4" />,
   book: <path d="M12 6.5C10 5 7.5 4.5 4 4.5v14c3.5 0 6 .5 8 2 2-1.5 4.5-2 8-2v-14c-3.5 0-6 .5-8 2ZM12 6.5v14" />,
   leaf: <path d="M5.5 19.5C5 11 10 5 20 4.5c0 9.5-5.5 15-14.5 15ZM5.5 19.5l7.5-7.5" />,
+  cpu: (
+    <>
+      <rect x="6" y="6" width="12" height="12" rx="2.5" />
+      <rect x="9.5" y="9.5" width="5" height="5" rx="1" />
+      <path d="M9.5 3v3M14.5 3v3M9.5 18v3M14.5 18v3M3 9.5h3M3 14.5h3M18 9.5h3M18 14.5h3" />
+    </>
+  ),
+  laptop: (
+    <>
+      <rect x="4.5" y="5" width="15" height="10.5" rx="2" />
+      <path d="M2.5 19h19" />
+    </>
+  ),
+  wifi: <path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.6 15.9a5 5 0 0 1 6.8 0M12 19.5h.01" />,
+  disk: (
+    <>
+      <ellipse cx="12" cy="6" rx="7.5" ry="2.8" />
+      <path d="M4.5 6v12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V6M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8" />
+    </>
+  ),
+  tabs: (
+    <>
+      <rect x="3" y="8" width="14" height="12.5" rx="3" />
+      <path d="M7.5 4.5H18a3 3 0 0 1 3 3V16" />
+    </>
+  ),
+  sunrise: <path d="M3 18.5h18M6.5 18.5a5.5 5.5 0 0 1 11 0M12 3.5v6M9.3 6.2 12 3.5l2.7 2.7M4.4 12.4l1.5 1M19.6 12.4l-1.5 1" />,
 };
 
 export type IconName = keyof typeof paths;
