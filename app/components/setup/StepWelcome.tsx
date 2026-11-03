@@ -1,5 +1,3 @@
-"use client";
-
 import Icon, { type IconName } from "@/app/components/ui/Icon";
 
 const POINTS: { icon: IconName; title: string; body: string }[] = [

@@ -1,17 +1,12 @@
-"use client";
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Icon, { type IconName } from "@/app/components/ui/Icon";
 import type { WeatherKind } from "@/lib/weather-codes";
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
 
-/**
- * A ticking clock. Null until mounted, so the server and the first client
- * render agree — every caller renders a skeleton for that one frame.
- */
+/** A ticking clock. */
 export function useNow(intervalMs = 1000): Date | null {
-  const [now, setNow] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date | null>(() => new Date());
   useEffect(() => {
     setNow(new Date());
     const id = setInterval(() => setNow(new Date()), intervalMs);
@@ -23,15 +18,23 @@ export function useNow(intervalMs = 1000): Date | null {
 type Remote<T> = { data: T | null; error: string | null; loading: boolean };
 
 /** Fetches JSON, refreshes on an interval, and pauses while the tab is hidden. */
-export function useRemote<T>(url: string | null, refreshMs?: number): Remote<T> {
+export function useRemote<T>(
+  key: string | null,
+  fetcher: (signal: AbortSignal) => Promise<T>,
+  refreshMs?: number
+): Remote<T> {
   const [state, setState] = useState<Remote<T>>({
     data: null,
     error: null,
-    loading: Boolean(url),
+    loading: Boolean(key),
+  });
+  const fetcherRef = useRef(fetcher);
+  useEffect(() => {
+    fetcherRef.current = fetcher;
   });
 
   useEffect(() => {
-    if (!url) {
+    if (!key) {
       setState({ data: null, error: null, loading: false });
       return;
     }
@@ -44,11 +47,9 @@ export function useRemote<T>(url: string | null, refreshMs?: number): Remote<T> 
       controller?.abort();
       controller = new AbortController();
       try {
-        const res = await fetch(url, { signal: controller.signal });
-        const body = await res.json();
+        const data = await fetcherRef.current(controller.signal);
         if (cancelled) return;
-        if (!res.ok) throw new Error(body?.error ?? `Request failed (${res.status})`);
-        setState({ data: body as T, error: null, loading: false });
+        setState({ data, error: null, loading: false });
       } catch (error) {
         if (cancelled || (error as Error).name === "AbortError") return;
         setState((prev) => ({
@@ -74,7 +75,7 @@ export function useRemote<T>(url: string | null, refreshMs?: number): Remote<T> 
       if (id) clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [url, refreshMs]);
+  }, [key, refreshMs]);
 
   return state;
 }

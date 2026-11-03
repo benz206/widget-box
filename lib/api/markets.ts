@@ -1,7 +1,6 @@
-import { NextResponse } from "next/server";
+import { cached } from "./cache";
 
 const CHART = "https://query1.finance.yahoo.com/v8/finance/chart";
-const MAX_SYMBOLS = 6;
 
 export type Quote = {
   symbol: string;
@@ -30,16 +29,13 @@ type Chart = {
   };
 };
 
-async function loadQuote(symbol: string): Promise<Quote | null> {
+async function loadQuote(symbol: string, signal: AbortSignal): Promise<Quote | null> {
   // Intraday where it exists; the wider window keeps a sparkline over
   // weekends and market holidays.
   for (const range of ["1d&interval=5m", "5d&interval=1h"]) {
     const res = await fetch(
       `${CHART}/${encodeURIComponent(symbol)}?range=${range}`,
-      {
-        headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
-        next: { revalidate: 60 },
-      }
+      { headers: { Accept: "application/json" }, signal }
     );
     if (!res.ok) continue;
 
@@ -67,40 +63,23 @@ async function loadQuote(symbol: string): Promise<Quote | null> {
   return null;
 }
 
-export async function GET(request: Request) {
-  const raw = new URL(request.url).searchParams.get("symbols") ?? "";
-  const symbols = raw
-    .split(",")
-    .map((s) => s.trim().toUpperCase())
-    .filter(Boolean)
-    .slice(0, MAX_SYMBOLS);
-
-  if (symbols.length === 0) {
-    return NextResponse.json({ error: "Missing symbols" }, { status: 400 });
-  }
-
-  const settled = await Promise.all(
-    symbols.map((symbol) =>
-      loadQuote(symbol).catch((error) => {
-        console.error(`quote failed for ${symbol}:`, error);
-        return null;
-      })
-    )
-  );
-
-  const body: MarketsResponse = {
-    quotes: settled.filter((q): q is Quote => q !== null),
-    missing: symbols.filter((_, i) => settled[i] === null),
-  };
-
-  if (body.quotes.length === 0) {
-    return NextResponse.json(
-      { error: "No quotes available", ...body },
-      { status: 502 }
+export function fetchMarkets(symbols: string[], signal: AbortSignal): Promise<MarketsResponse> {
+  return cached(`markets:${symbols.join(",")}`, 60_000, async () => {
+    const settled = await Promise.all(
+      symbols.map((symbol) =>
+        loadQuote(symbol, signal).catch((error) => {
+          if ((error as Error).name === "AbortError") throw error;
+          console.error(`quote failed for ${symbol}:`, error);
+          return null;
+        })
+      )
     );
-  }
 
-  return NextResponse.json(body, {
-    headers: { "Cache-Control": "public, max-age=30, s-maxage=60" },
+    const body: MarketsResponse = {
+      quotes: settled.filter((q): q is Quote => q !== null),
+      missing: symbols.filter((_, i) => settled[i] === null),
+    };
+    if (body.quotes.length === 0) throw new Error("No quotes available");
+    return body;
   });
 }

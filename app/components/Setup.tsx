@@ -1,9 +1,5 @@
-"use client";
-
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import Button, { ButtonLink } from "@/app/components/ui/Button";
+import Button from "@/app/components/ui/Button";
 import Icon from "@/app/components/ui/Icon";
 import StepFinish from "@/app/components/setup/StepFinish";
 import StepPreferences, { type Prefs } from "@/app/components/setup/StepPreferences";
@@ -18,10 +14,8 @@ import {
   useDashboard,
 } from "@/lib/storage/dashboard";
 import { getWidgetById } from "@/lib/widgets/registry";
-import { registerSystemWidgets, SYSTEM_WIDGET_IDS } from "@/lib/widgets/system";
+import { SYSTEM_WIDGET_IDS } from "@/lib/widgets/system";
 import { WIDGET_SIZES, type WidgetPosition, type WidgetSize } from "@/lib/widgets/types";
-
-registerSystemWidgets();
 
 const STEPS = [
   { label: "Welcome", hint: "What this is" },
@@ -44,8 +38,7 @@ function initialConfig(widgetId: string, prefs: Prefs): Record<string, unknown> 
   }
 }
 
-export default function SetupPage() {
-  const router = useRouter();
+export default function Setup({ onClose }: { onClose: () => void }) {
   const { state, actions } = useDashboard(SYSTEM_WIDGET_IDS);
 
   const [step, setStep] = useState(0);
@@ -104,21 +97,26 @@ export default function SetupPage() {
         })
       ),
     });
-    router.push("/");
+    onClose();
+  };
+
+  const exit = () => {
+    if (state === null) actions.replaceState(createEmptyDashboard());
+    onClose();
   };
 
   const last = step === STEPS.length - 1;
 
   return (
-    <div className="onboarding">
+    <div role="dialog" aria-modal="true" aria-label="Set up Widget Box" className="onboarding animate-fade-in">
       <header className="onboarding-bar material">
-        <Link href="/" className="sidebar-brand focus-ring" aria-label="Widget Box home">
+        <span className="sidebar-brand">
           <span className="brand-mark"><Icon name="grid" size={14} strokeWidth={2} /></span>
           <span>Widget Box</span>
-        </Link>
-        <ButtonLink href="/" variant="ghost" size="sm">
+        </span>
+        <Button variant="ghost" size="sm" onClick={exit}>
           {state?.setupComplete ? "Exit setup" : "Skip setup"}
-        </ButtonLink>
+        </Button>
       </header>
 
       <div className="onboarding-body">

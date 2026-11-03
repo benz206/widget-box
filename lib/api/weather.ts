@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { describeWeather, type WeatherKind } from "@/lib/weather-codes";
+import { cached } from "./cache";
 
 const GEOCODE = "https://geocoding-api.open-meteo.com/v1/search";
 const FORECAST = "https://api.open-meteo.com/v1/forecast";
@@ -19,15 +19,13 @@ export type WeatherResponse = {
   hourly: { time: string; tempC: number; kind: WeatherKind; isDay: boolean }[];
 };
 
-type Geo = {
-  results?: {
-    name: string;
-    admin1?: string;
-    country?: string;
-    latitude: number;
-    longitude: number;
-    timezone: string;
-  }[];
+type Place = {
+  name: string;
+  admin1?: string;
+  country?: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
 };
 
 type Forecast = {
@@ -58,33 +56,37 @@ function isDaytime(stamp: string, daily: Forecast["daily"]): boolean {
   return stamp >= daily.sunrise[day] && stamp < daily.sunset[day];
 }
 
-export async function GET(request: Request) {
-  const params = new URL(request.url).searchParams;
-  const query = params.get("q")?.trim();
-  if (!query) {
-    return NextResponse.json({ error: "Missing q" }, { status: 400 });
-  }
-
+async function getJson<T>(url: string, signal: AbortSignal): Promise<T> {
+  let res: Response;
   try {
-    const geoUrl = `${GEOCODE}?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
-    const geoRes = await fetch(geoUrl, { next: { revalidate: 86_400 } });
-    if (!geoRes.ok) throw new Error(`geocoder ${geoRes.status}`);
-    const place = ((await geoRes.json()) as Geo).results?.[0];
-    if (!place) {
-      return NextResponse.json(
-        { error: `No place matched "${query}"` },
-        { status: 404 }
-      );
-    }
+    res = await fetch(url, { signal });
+  } catch (error) {
+    if ((error as Error).name === "AbortError") throw error;
+    throw new Error("Weather service unavailable", { cause: error });
+  }
+  if (!res.ok) throw new Error("Weather service unavailable");
+  return res.json();
+}
 
+function geocode(query: string, signal: AbortSignal): Promise<Place | null> {
+  return cached(`geocode:${query.toLowerCase()}`, 86_400_000, async () => {
+    const url = `${GEOCODE}?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
+    const body = await getJson<{ results?: Place[] }>(url, signal);
+    return body.results?.[0] ?? null;
+  });
+}
+
+export async function fetchWeather(query: string, signal: AbortSignal): Promise<WeatherResponse> {
+  const place = await geocode(query, signal);
+  if (!place) throw new Error(`No place matched "${query}"`);
+
+  return cached(`forecast:${place.latitude},${place.longitude}`, 900_000, async () => {
     const forecastUrl =
       `${FORECAST}?latitude=${place.latitude}&longitude=${place.longitude}` +
       `&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day` +
       `&hourly=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset` +
       `&forecast_days=2&timezone=auto`;
-    const res = await fetch(forecastUrl, { next: { revalidate: 900 } });
-    if (!res.ok) throw new Error(`forecast ${res.status}`);
-    const data = (await res.json()) as Forecast;
+    const data = await getJson<Forecast>(forecastUrl, signal);
 
     const currentHour = data.current.time.slice(0, 13);
     const start = Math.max(
@@ -92,7 +94,7 @@ export async function GET(request: Request) {
       data.hourly.time.findIndex((t) => t.slice(0, 13) >= currentHour)
     );
 
-    const body: WeatherResponse = {
+    return {
       place: {
         name: place.name,
         region: place.admin1,
@@ -120,15 +122,5 @@ export async function GET(request: Request) {
         isDay: isDaytime(time, data.daily),
       })),
     };
-
-    return NextResponse.json(body, {
-      headers: { "Cache-Control": "public, max-age=300, s-maxage=900" },
-    });
-  } catch (error) {
-    console.error("weather lookup failed:", error);
-    return NextResponse.json(
-      { error: "Weather service unavailable" },
-      { status: 502 }
-    );
-  }
+  });
 }
