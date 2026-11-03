@@ -2,11 +2,12 @@
   "manifest_version": 3,
   "name": "Widget Box",
   "version": "0.1.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtN7/zKQ74+MRH84gt8NeFDPTFoLZVMQx6Fauubwbayxtbu1HfuyOW/QLmFgEsnZZAL6dxEH/FW3VSslCQcLu5Q++TRUExbCJQQNf/xsZ5TgVT2f7hUiOZHHZvOh9l9FOmtlvZHcbEUTjgVXlMBQ8UKHTrjCRl+E40sSuGixiJUN1necpYYzmCrcC0tETKeWvRMlAFQKGYLf+3i3UMskwO4fIun2st/XeeO83n0qlqefqN04SsnLD3toUQ1HAu0jlrKBUMEY5TBdGpakmLr2Iu4xYG46KAHb+wc38f5msYBUcWPV6e2kmAVQIWfNVizEkGZOwjMSTRemiN5J8dsXCTwIDAQAB",
   "description": "A new tab with Unsplash backgrounds and a grid of live widgets.",
   "chrome_url_overrides": {
     "newtab": "newtab.html"
   },
-  "permissions": ["search"],
+  "permissions": ["search", "identity"],
   "host_permissions": ["https://query1.finance.yahoo.com/*"],
   "icons": {
     "16": "icons/16.png",

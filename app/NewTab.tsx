@@ -8,6 +8,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import Library from "@/app/components/Library";
+import NowPlaying from "@/app/components/NowPlaying";
 import Settings from "@/app/components/Settings";
 import Setup from "@/app/components/Setup";
 import WidgetTile from "@/app/components/WidgetTile";
@@ -447,6 +448,8 @@ export default function NewTab() {
           {notice}
         </div>
       )}
+
+      {display.nowPlaying === "corner" && <NowPlaying />}
 
       {overlay === "library" && <Library onClose={() => setOverlay(null)} />}
       {overlay === "settings" && (
