@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { WIDGET_SIZES, type WidgetPosition, type WidgetSize } from "../widgets/types";
 import { clearWidgetState } from "../widgets/state";
@@ -24,7 +22,25 @@ export type DashboardPreferences = {
   units?: "c" | "f";
   gridCols?: number;
   gridRows?: number;
+  showSeconds?: boolean;
+  showDate?: boolean;
+  showGreeting?: boolean;
+  showSearch?: boolean;
+  tileOpacity?: number;
+  tileBlur?: number;
+  nowPlaying?: "corner" | "widget";
 };
+
+export const DISPLAY_DEFAULTS = {
+  hour12: true,
+  showSeconds: false,
+  showDate: true,
+  showGreeting: true,
+  showSearch: true,
+  tileOpacity: 70,
+  tileBlur: 28,
+  nowPlaying: "corner",
+} satisfies DashboardPreferences;
 
 export type DashboardState = {
   version: 2;
@@ -194,16 +210,12 @@ export type DashboardActions = {
  */
 export function useDashboard(known: Set<string>): {
   state: DashboardState | null;
-  hydrated: boolean;
   actions: DashboardActions;
 } {
-  const [state, setState] = useState<DashboardState | null>(null);
-  const [hydrated, setHydrated] = useState(false);
+  const [state, setState] = useState<DashboardState | null>(() => loadDashboard(known));
 
   useEffect(() => {
     const read = () => setState(loadDashboard(known));
-    read();
-    setHydrated(true);
 
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) read();
@@ -259,5 +271,5 @@ export function useDashboard(known: Set<string>): {
     [mutate]
   );
 
-  return { state, hydrated, actions };
+  return { state, actions };
 }

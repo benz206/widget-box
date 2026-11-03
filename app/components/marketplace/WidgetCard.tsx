@@ -1,5 +1,3 @@
-"use client";
-
 import TilePreview from "@/app/components/widgets/TilePreview";
 import Badge from "@/app/components/ui/Badge";
 import { CATEGORY_LABELS } from "@/lib/widgets/registry";

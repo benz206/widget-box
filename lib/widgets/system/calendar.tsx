@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo } from "react";
 import { useNow, WidgetHeader, WidgetSkeleton } from "@/app/components/widgets/kit";
 import type { WidgetDefinition, WidgetViewProps } from "../types";

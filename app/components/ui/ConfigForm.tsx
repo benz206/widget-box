@@ -1,5 +1,3 @@
-"use client";
-
 import type { ConfigField } from "@/lib/widgets/types";
 import Field from "./Field";
 
@@ -82,6 +80,21 @@ function Control({
         />
       );
 
+    case "range":
+      return (
+        <input
+          type="range"
+          value={Number(value ?? field.min)}
+          min={field.min}
+          max={field.max}
+          step={field.step ?? 1}
+          aria-label={field.label}
+          onPointerDown={(e) => e.stopPropagation()}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="range"
+        />
+      );
+
     case "date":
       return (
         <input
@@ -157,7 +170,23 @@ export default function ConfigForm({
             />
           </div>
         ) : (
-          <Field key={field.key} label={field.label} hint={field.help}>
+          <Field
+            key={field.key}
+            label={
+              field.kind === "range" ? (
+                <span className="flex items-center justify-between gap-3">
+                  {field.label}
+                  <span className="tabular font-normal text-secondary">
+                    {Number(config[field.key] ?? field.min)}
+                    {field.unit}
+                  </span>
+                </span>
+              ) : (
+                field.label
+              )
+            }
+            hint={field.help}
+          >
             <Control
               field={field}
               value={config[field.key]}

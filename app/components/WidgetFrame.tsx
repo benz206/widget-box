@@ -1,6 +1,4 @@
-"use client";
-
-import React from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import Icon from "./ui/Icon";
 import { buttonClass } from "./ui/Button";
@@ -55,10 +53,34 @@ export default function WidgetFrame({
     id,
     disabled: !draggable,
   });
+  const nodeRef = useRef<HTMLDivElement | null>(null);
+  const last = useRef<{ rect: DOMRect; cell: string } | null>(null);
+  const cell = `${position.x},${position.y},${position.w},${position.h}`;
+
+  useLayoutEffect(() => {
+    const el = nodeRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const prev = last.current;
+    last.current = { rect, cell };
+    if (!prev || prev.cell === cell || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const dx = prev.rect.left - rect.left;
+    const dy = prev.rect.top - rect.top;
+    const resized = Math.abs(prev.rect.width - rect.width) > 1 || Math.abs(prev.rect.height - rect.height) > 1;
+    el.animate(
+      resized
+        ? [{ transform: `translate(${dx}px, ${dy}px) scale(0.94)`, opacity: 0.4 }, { transform: "none", opacity: 1 }]
+        : [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
+      { duration: 460, easing: "cubic-bezier(0.32, 0.72, 0, 1)" }
+    );
+  });
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        setNodeRef(node);
+        nodeRef.current = node;
+      }}
       className={[
         "grid-item relative",
         draggable && "cursor-grab touch-none active:cursor-grabbing",
@@ -110,7 +132,8 @@ export default function WidgetFrame({
           ["--tile-pad" as string]: "16px",
           padding: "var(--tile-pad)",
           boxShadow: isDragging ? "var(--tile-shadow-lifted)" : "var(--tile-shadow)",
-          transition: "box-shadow 260ms var(--ease-ios)",
+          transition:
+            "box-shadow 260ms var(--ease-ios), transform 260ms var(--ease-ios), background-color 240ms linear",
         }}
       >
         {/* Top highlight, the way a physical material catches light. */}
