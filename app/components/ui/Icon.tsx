@@ -141,6 +141,7 @@ const paths: Record<string, React.ReactNode> = {
       <circle cx="17.5" cy="16" r="2.5" />
     </>
   ),
+  heart: <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20Z" />,
   play: <path d="M8 5.5 18 12 8 18.5Z" />,
   pause: <path d="M9 5.5v13M15 5.5v13" />,
   reset: (
