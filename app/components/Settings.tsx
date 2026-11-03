@@ -4,6 +4,8 @@ import {
   BACKDROP_MOTIONS,
   refreshPhotos,
   showNextPhoto,
+  toggleFavorite,
+  useFavorites,
   useBackdropSettings,
   useQueuedPhotos,
 } from "./Backdrop";
@@ -23,7 +25,7 @@ import {
 } from "@/lib/api/spotify";
 import { apiKey, saveApiKey } from "@/lib/storage/keys";
 import { useSpotifyConnected } from "@/lib/widgets/system/spotify";
-import { BACKDROP_TOPICS, CUSTOM_TOPIC, imageCacheStats, UNSPLASH_ENABLED } from "@/lib/api/unsplash";
+import { BACKDROP_TOPICS, CUSTOM_TOPIC, FAVORITES_TOPIC, imageCacheStats, UNSPLASH_ENABLED } from "@/lib/api/unsplash";
 import { useUsage } from "@/lib/api/usage";
 import { DISPLAY_DEFAULTS, type DashboardPreferences } from "@/lib/storage/dashboard";
 import type { ConfigField } from "@/lib/widgets/types";
@@ -65,7 +67,13 @@ const NOW_PLAYING_FIELDS: ConfigField[] = [
   },
 ];
 
-const APPEARANCES:{ value: Appearance; label: string }[] = [
+const LAYOUTS: { value: NonNullable<DashboardPreferences["layout"]>; label: string }[] = [
+  { value: "centered", label: "Centered" },
+  { value: "left", label: "Left" },
+  { value: "split", label: "Split" },
+];
+
+const APPEARANCES: { value: Appearance; label: string }[] = [
   { value: "system", label: "System" },
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
@@ -151,6 +159,50 @@ function SpotifyConnection() {
       </Button>
       {error && <p className="text-[12px] text-secondary">{error}</p>}
     </div>
+  );
+}
+
+function thumbnail(raw: string) {
+  const url = new URL(raw);
+  url.searchParams.set("w", "320");
+  url.searchParams.set("h", "200");
+  url.searchParams.set("fit", "crop");
+  url.searchParams.set("q", "70");
+  return url.toString();
+}
+
+function Favorites({ selected }: { selected: boolean }) {
+  const favorites = useFavorites();
+  return (
+    <section>
+      <h4 className="drawer-section-title">Favorites</h4>
+      {favorites.length === 0 ? (
+        <p className="text-[13px] text-secondary text-pretty">
+          {selected ? "No favorites yet, so there is nothing to show. " : ""}
+          Press the heart by the photo credit to save the photo on screen.
+        </p>
+      ) : (
+        <div className="favorites-grid">
+          {favorites.map((photo) => (
+            <div
+              key={photo.id}
+              className="favorite-thumb"
+              title={`${photo.alt} by ${photo.author}`}
+              style={{ backgroundImage: `url("${thumbnail(photo.raw)}")`, backgroundColor: photo.color }}
+            >
+              <button
+                type="button"
+                aria-label={`Remove photo by ${photo.author} from favorites`}
+                onClick={() => toggleFavorite(photo)}
+                className="focus-ring"
+              >
+                <Icon name="xmark" size={11} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -265,7 +317,7 @@ export default function Settings({
       className="sheet-scrim animate-fade-in"
       data-closing={closing || undefined}
     >
-      <div role="dialog" aria-modal="true" aria-labelledby="settings-title" className="settings card animate-sheet-in">
+      <div role="dialog" aria-modal="true" aria-labelledby="settings-title" className="settings animate-sheet-in">
         <nav className="settings-nav" aria-label="Settings sections">
           <h2 id="settings-title">Settings</h2>
           {TABS.map((t) => (
@@ -296,6 +348,34 @@ export default function Settings({
           <div key={tab} className="settings-pane-body animate-fade-in">
             {tab === "general" && (
               <>
+                <section>
+                  <h4 className="drawer-section-title">Layout</h4>
+                  <div role="radiogroup" aria-label="Layout" className="layout-picker">
+                    {LAYOUTS.map((layout) => (
+                      <button
+                        key={layout.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={display.layout === layout.value}
+                        onClick={() => onChange({ layout: layout.value })}
+                        className="layout-option focus-ring"
+                      >
+                        <span className="layout-diagram" data-layout={layout.value} aria-hidden>
+                          <span className="layout-diagram-intro">
+                            <i />
+                            <i />
+                          </span>
+                          <span className="layout-diagram-grid">
+                            <i />
+                            <i />
+                            <i />
+                          </span>
+                        </span>
+                        {layout.label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
                 <section>
                   <h4 className="drawer-section-title">Clock and greeting</h4>
                   <ConfigForm fields={HEADER_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
@@ -345,23 +425,26 @@ export default function Settings({
                   />
                 </section>
                 {UNSPLASH_ENABLED ? (
-                  <section className="flex flex-col gap-4">
-                    <ConfigForm fields={PHOTO_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
-                    {backdrop.topic === CUSTOM_TOPIC && (
-                      <CustomQuery value={backdrop.query} onCommit={(query) => updateBackdrop({ query })} />
-                    )}
-                    <ConfigForm fields={BACKDROP_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
-                    <div className="flex flex-wrap gap-2">
-                      <Button onClick={showNextPhoto}>
-                        <Icon name="chevronRight" size={14} />
-                        Next photo
-                      </Button>
-                      <Button onClick={refreshPhotos} title="Drop the queue and fetch a fresh set">
-                        <Icon name="reset" size={14} />
-                        Fetch new photos
-                      </Button>
-                    </div>
-                  </section>
+                  <>
+                    <section className="flex flex-col gap-4">
+                      <ConfigForm fields={PHOTO_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
+                      {backdrop.topic === CUSTOM_TOPIC && (
+                        <CustomQuery value={backdrop.query} onCommit={(query) => updateBackdrop({ query })} />
+                      )}
+                      <ConfigForm fields={BACKDROP_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={showNextPhoto}>
+                          <Icon name="chevronRight" size={14} />
+                          Next photo
+                        </Button>
+                        <Button onClick={refreshPhotos} title="Drop the queue and fetch a fresh set">
+                          <Icon name="reset" size={14} />
+                          Fetch new photos
+                        </Button>
+                      </div>
+                    </section>
+                    <Favorites selected={backdrop.topic === FAVORITES_TOPIC} />
+                  </>
                 ) : (
                   <p className="callout" data-tone="warning">
                     <Icon name="alert" size={14} />

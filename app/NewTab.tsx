@@ -329,7 +329,7 @@ export default function NewTab() {
   const visibleRows = editMode ? rows : Math.max(usedRows, 1);
 
   return (
-    <main className="newtab">
+    <main className="newtab" data-layout={display.layout}>
       <nav aria-label="Dashboard tools" className="newtab-tools">
         {instances.length > 0 && (
           <ToolButton
@@ -343,15 +343,17 @@ export default function NewTab() {
         <ToolButton label="Settings" icon="gear" onClick={() => setOverlay("settings")} />
       </nav>
 
-      <Hero preferences={state?.preferences} />
-      {display.showSearch && <SearchBar />}
+      <div className="newtab-intro">
+        <Hero preferences={state?.preferences} />
+        {display.showSearch && <SearchBar />}
 
-      {instances.length === 0 && (
-        <button type="button" className="glass-pill material focus-ring" onClick={() => setOverlay("library")}>
-          <Icon name="plus" size={14} />
-          Add widgets
-        </button>
-      )}
+        {instances.length === 0 && (
+          <button type="button" className="glass-pill material focus-ring" onClick={() => setOverlay("library")}>
+            <Icon name="plus" size={14} />
+            Add widgets
+          </button>
+        )}
+      </div>
 
       <div className="newtab-board">
         {instances.length > 0 && (

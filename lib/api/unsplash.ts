@@ -9,6 +9,7 @@ const IMAGE_CACHE = "widget-box:photos";
 export const UNSPLASH_ENABLED = Boolean(ACCESS_KEY);
 export const UNSPLASH_HOME = `https://unsplash.com/?${UTM}`;
 export const CUSTOM_TOPIC = "custom";
+export const FAVORITES_TOPIC = "favorites";
 
 export const BACKDROP_TOPICS = [
   { value: "bo8jQKTaE0Y", label: "Wallpapers" },
@@ -26,6 +27,7 @@ export const BACKDROP_TOPICS = [
   { value: "upmleWZC83Y", label: "Patterns" },
   { value: "If65AuNOOxQ", label: "Illustrated wallpapers" },
   { value: "M4lsf7LQDRA", label: "Illustrated nature" },
+  { value: FAVORITES_TOPIC, label: "Your favorites" },
   { value: CUSTOM_TOPIC, label: "Custom search…" },
 ];
 
