@@ -20,7 +20,7 @@ function safeZone(zone: unknown): string {
 }
 
 /** "America/New_York" → "New York" */
-function zoneLabel(zone: string): string {
+export function zoneLabel(zone: string): string {
   return (zone.split("/").pop() ?? zone).replace(/_/g, " ");
 }
 

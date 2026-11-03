@@ -192,6 +192,23 @@ const paths: Record<string, React.ReactNode> = {
       <circle cx="15.5" cy="9" r="1.6" />
     </>
   ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z" />
+    </>
+  ),
+  waves: <path d="M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0" />,
+  wind: <path d="M3 9h11a3 3 0 1 0-3-3M3 15h14a3 3 0 1 1-3 3M3 12h6" />,
+  dice: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="4" />
+      <path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01" />
+    </>
+  ),
+  exchange: <path d="M4 8.5h15l-4-4M20 15.5H5l4 4" />,
+  book: <path d="M12 6.5C10 5 7.5 4.5 4 4.5v14c3.5 0 6 .5 8 2 2-1.5 4.5-2 8-2v-14c-3.5 0-6 .5-8 2ZM12 6.5v14" />,
+  leaf: <path d="M5.5 19.5C5 11 10 5 20 4.5c0 9.5-5.5 15-14.5 15ZM5.5 19.5l7.5-7.5" />,
 };
 
 export type IconName = keyof typeof paths;
