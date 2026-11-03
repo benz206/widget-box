@@ -68,7 +68,7 @@ function ClockFace({
   const hourAngle = (hour % 12) * 30 + minute * 0.5;
   const r = 50;
   return (
-    <svg width={size} height={size} viewBox="-60 -60 120 120" aria-hidden>
+    <svg width={size} height={size} viewBox="-60 -60 120 120" aria-hidden style={{ maxWidth: "100%", maxHeight: "100%" }}>
       <circle r={r + 6} fill="var(--fill)" />
       {Array.from({ length: 12 }).map((_, i) => (
         <line
@@ -132,7 +132,7 @@ function Digital({
   const display = hour12 ? hour % 12 || 12 : hour;
   const suffix = hour < 12 ? "AM" : "PM";
   return (
-    <div className={`tabular ${className}`}>
+    <div className={`tabular whitespace-nowrap ${className}`}>
       {hour12 ? display : String(display).padStart(2, "0")}:
       {String(minute).padStart(2, "0")}
       {hour12 && (
@@ -154,13 +154,13 @@ function ClockView({ size, config }: WidgetViewProps) {
 
   if (size === "small") {
     return (
-      <div className="flex h-full w-full flex-col justify-between">
+      <div className="@container flex h-full w-full flex-col justify-between">
         <WidgetHeader icon="clock" label={zoneLabel(zone)} accent={ACCENT} />
         <Digital
           hour={t.hour}
           minute={t.minute}
           hour12={hour12}
-          className="text-[2.6rem] font-light leading-none tracking-tight"
+          className="text-[min(2.6rem,26cqi)] font-light leading-none tracking-tight"
         />
         <div className="text-[11px] font-medium text-secondary">
           {t.weekday.slice(0, 3)} {t.date}
@@ -171,14 +171,14 @@ function ClockView({ size, config }: WidgetViewProps) {
 
   if (size === "medium") {
     return (
-      <div className="flex h-full w-full items-center gap-4">
+      <div className="@container flex h-full w-full items-center gap-4">
         <ClockFace hour={t.hour} minute={t.minute} second={t.second} size={78} />
         <div className="min-w-0 flex-1">
           <Digital
             hour={t.hour}
             minute={t.minute}
             hour12={hour12}
-            className="text-[2.3rem] font-light leading-none tracking-tight"
+            className="text-[min(2.3rem,14cqi)] font-light leading-none tracking-tight"
           />
           <div className="mt-1 truncate text-[12px] font-medium text-secondary">
             {t.weekday}, {t.date}
@@ -190,15 +190,17 @@ function ClockView({ size, config }: WidgetViewProps) {
   }
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-between">
+    <div className="@container flex h-full w-full flex-col items-center justify-between">
       <WidgetHeader icon="clock" label={zoneLabel(zone)} accent={ACCENT} />
-      <ClockFace hour={t.hour} minute={t.minute} second={t.second} size={150} />
+      <div className="flex min-h-0 w-full flex-1 items-center justify-center py-2">
+        <ClockFace hour={t.hour} minute={t.minute} second={t.second} size={150} />
+      </div>
       <div className="w-full text-center">
         <Digital
           hour={t.hour}
           minute={t.minute}
           hour12={hour12}
-          className="text-[2rem] font-light leading-none tracking-tight"
+          className="text-[min(2rem,13cqi)] font-light leading-none tracking-tight"
         />
         <div className="mt-1 text-[12px] font-medium text-secondary">
           {t.weekday}, {t.date}

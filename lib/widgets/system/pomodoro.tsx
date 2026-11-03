@@ -101,15 +101,18 @@ function PomodoroView({ instanceId, size, config }: WidgetViewProps) {
   const progress = 1 - remaining / totalMs;
   const clock = formatClock(remaining / 1000);
 
-  const dial = (px: number) => (
-    <div className="relative shrink-0" style={{ width: px, height: px }}>
-      <svg width={px} height={px} viewBox="-50 -50 100 100">
+  const dial = (px?: number) => (
+    <div
+      className="relative shrink-0"
+      style={px ? { width: px, height: px } : { height: "100%", maxHeight: 80, aspectRatio: "1", containerType: "size" }}
+    >
+      <svg width="100%" height="100%" viewBox="-50 -50 100 100">
         <ProgressRing progress={progress} color={color} radius={44} stroke={7} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
           className="tabular font-light leading-none tracking-tight"
-          style={{ fontSize: px * 0.26 }}
+          style={{ fontSize: px ? px * 0.26 : "26cqh" }}
         >
           {clock}
         </span>
@@ -132,13 +135,13 @@ function PomodoroView({ instanceId, size, config }: WidgetViewProps) {
 
   if (size === "small") {
     return (
-      <div className="flex h-full w-full flex-col items-center justify-between">
+      <div className="flex h-full w-full flex-col items-center justify-between gap-1.5">
         <WidgetHeader
           icon="timer"
           label={timer.mode === "focus" ? "Focus" : "Break"}
           accent={color}
         />
-        {dial(80)}
+        <div className="flex min-h-0 w-full flex-1 items-center justify-center">{dial()}</div>
         {controls}
       </div>
     );
