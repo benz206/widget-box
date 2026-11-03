@@ -1,5 +1,3 @@
-"use client";
-
 import Field from "@/app/components/ui/Field";
 import Segmented from "@/app/components/ui/Segmented";
 

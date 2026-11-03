@@ -1,5 +1,3 @@
-"use client";
-
 import { getWidgetById, resolveConfig } from "@/lib/widgets/registry";
 import { WIDGET_SIZES, type WidgetSize } from "@/lib/widgets/types";
 

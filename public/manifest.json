@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Widget Box",
+  "version": "0.1.0",
+  "description": "A new tab with Unsplash backgrounds and a grid of live widgets.",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "permissions": ["search"],
+  "host_permissions": ["https://query1.finance.yahoo.com/*"],
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  }
+}

@@ -1,5 +1,3 @@
-"use client";
-
 import { useNow, WidgetHeader, WidgetMessage } from "@/app/components/widgets/kit";
 import type { WidgetDefinition, WidgetViewProps } from "../types";
 

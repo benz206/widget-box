@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import Badge from "@/app/components/ui/Badge";
 import Button from "@/app/components/ui/Button";

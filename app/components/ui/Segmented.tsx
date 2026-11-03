@@ -1,5 +1,3 @@
-"use client";
-
 import Icon, { type IconName } from "./Icon";
 
 type Option<T extends string> = { value: T; label: string; icon?: IconName };

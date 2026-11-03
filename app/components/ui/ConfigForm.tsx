@@ -1,5 +1,3 @@
-"use client";
-
 import type { ConfigField } from "@/lib/widgets/types";
 import Field from "./Field";
 

@@ -1,6 +1,4 @@
-"use client";
-
-import type { MarketsResponse } from "@/app/api/markets/route";
+import { fetchMarkets, type MarketsResponse } from "@/lib/api/markets";
 import {
   formatPrice,
   Sparkline,
@@ -27,7 +25,8 @@ function symbolsOf(config: Record<string, unknown>): string[] {
 function MarketsView({ size, config }: WidgetViewProps) {
   const symbols = symbolsOf(config);
   const { data, error, loading } = useRemote<MarketsResponse>(
-    symbols.length ? `/api/markets?symbols=${symbols.join(",")}` : null,
+    symbols.length ? `markets:${symbols.join(",")}` : null,
+    (signal) => fetchMarkets(symbols, signal),
     REFRESH_MS
   );
 
