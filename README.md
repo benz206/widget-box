@@ -1,14 +1,23 @@
 # Widget Box
 
-A personal dashboard of small, glanceable widgets — the time, the weather, a
-focus timer, a note — arranged on a grid you rearrange yourself.
+A Chrome new tab page: an Unsplash photo, a big clock, a search box, and a grid
+of small, glanceable widgets — the weather, markets, a focus timer, a note —
+that you rearrange yourself.
 
 ```bash
 bun install
-bun dev
+echo "VITE_UNSPLASH_ACCESS_KEY=<your access key>" > .env.local
+bun run build
 ```
 
-Then open <http://localhost:3000>.
+Then open `chrome://extensions`, turn on **Developer mode**, choose **Load
+unpacked**, and pick the `dist` folder. It works the same in Edge, Brave, and Arc.
+
+While working on it, `bun run watch` rebuilds `dist` on save; press reload on
+the extension's card and open a new tab. `bun dev` serves the page at
+<http://localhost:5173> for quick layout work, though search falls back to
+Google there and Markets cannot reach Yahoo without the extension's host
+permission.
 
 ## How it works
 
@@ -46,28 +55,37 @@ The dashboard lives in `localStorage` under `widget-box:dashboard:v1`. It is
 versioned and migrated on read, so changing the size model does not strand an
 existing layout.
 
-### Server routes
+### Data
 
-Only widgets that genuinely need a server have one:
+Widgets fetch straight from the page, through `useRemote(key, fetcher)`:
 
-| Route | Used by | Upstream |
-| --- | --- | --- |
-| `/api/weather?q=` | Weather, Sky | Open-Meteo forecast + geocoding, no key needed |
-| `/api/markets?symbols=` | Markets | Yahoo Finance chart endpoint |
+| Module | Used by | Upstream | Cached for |
+| --- | --- | --- | --- |
+| `lib/api/weather.ts` | Weather, Sky | Open-Meteo forecast + geocoding, no key needed | 15 min (places: 1 day) |
+| `lib/api/markets.ts` | Markets | Yahoo Finance chart endpoint | 1 min |
 
-Both cache upstream responses and degrade to a readable message inside the tile
-rather than to an empty box.
+Responses are cached in `localStorage`, so opening a tab does not refetch
+anything still fresh. Yahoo sends no CORS headers; the manifest's host
+permission is what lets the extension page read it. Failures degrade to a
+readable message inside the tile rather than to an empty box.
 
 ## Backdrop
 
-The dashboard cycles through 18 curated landscapes from [Lorem Picsum](https://picsum.photos),
-with a four-second crossfade every minute by default. No API key is needed. Stable image URLs
-allow browser/CDN caching, and the next photo is preloaded and decoded before it appears.
-Failed loads preserve the current image and retry with the next landscape on the next tick.
-Rotation pauses while the tab is hidden; reduced-motion preferences disable the fade and drift.
-The background is always on. The photo icon opens timing settings: change photos every
-30 seconds, 1 minute, 2 minutes, or 5 minutes, with a 1, 2, 4, or 8-second crossfade.
-Timing preferences persist per browser; there is no photo picker or off switch.
+Photos come from [Unsplash](https://unsplash.com) using the access key in
+`.env.local`, which is compiled into the bundle — fine for your own install,
+not for publishing. Without a key the page falls back to the plain gradient.
+
+`lib/api/unsplash.ts` asks for 30 random landscape photos from one curated
+topic at a time and keeps them as a queue in `localStorage`. Each tab takes the
+next photo, which the previous tab already preloaded, so it appears instantly;
+the queue refills in the background when it runs low. The settings drawer picks
+the topic (Wallpapers, Nature, Travel, Architecture, Textures, Film) and whether
+the photo changes on every new tab, hourly, or daily. The ↻ button by the credit
+skips to the next photo.
+
+Per Unsplash's guidelines, images are hotlinked from their CDN, the credit names
+and links the photographer and Unsplash, and the download endpoint is pinged
+whenever a photo is shown.
 
 ## Appearance
 
@@ -77,26 +95,18 @@ per-component overrides, so a component almost never needs a `dark:` variant.
 The appearance follows the OS unless overridden, and resolves before first
 paint.
 
-The interface is set in Inter on a 4px grid with small radii and 1px borders.
+The interface is set in Inter (bundled, not fetched) on a 4px grid with small
+radii and 1px borders.
 Shared primitives live in `app/components/ui` (`Button`, `Badge`, `Field`,
 `PageHeader`, `FilterPills`, `Segmented`, `ConfirmDialog`), backed by plain
 classes in `globals.css` (`.btn`, `.badge`, `.input`, `.card`, `.data-table`,
-`.drawer`, …). Pages inside `app/(app)` share the sidebar shell; setup and
-sign-in are focused pages without it.
+`.drawer`, …).
 
-## Accounts
+## Structure
 
-Sign-in is optional and unused by the dashboard — the layout is local to the
-browser. Auth.js v5 (`next-auth@beta`) with a credentials provider and a
-SQLite/Prisma user table sits behind `/login` if you want it. Set `AUTH_SECRET`
-in `.env` (`bunx auth secret` generates one), then:
-
-```bash
-bunx prisma migrate dev
-bun seed   # demo@widget.box / password123
-```
-
-Prisma 7 reads its settings from `prisma.config.ts` and talks to SQLite through
-the libSQL driver adapter. `DATABASE_URL` is resolved relative to the project
-root, so `file:./prisma/dev.db` puts the database at `prisma/dev.db`. The client
-is generated into `lib/generated/prisma` on install.
+There is one page, `newtab.html`, rendered by `app/NewTab.tsx`. The widget
+library (`Library`), settings drawer (`Settings`), and onboarding (`Setup`)
+open over it as overlays rather than routes; setup opens by itself the first
+time. Extension pages allow only same-origin scripts, so the appearance
+bootstrap is `public/appearance.js` rather than an inline script.
+`public/manifest.json` and the icons are copied into `dist` as-is.
