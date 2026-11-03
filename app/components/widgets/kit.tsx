@@ -8,9 +8,13 @@ import type { WeatherKind } from "@/lib/weather-codes";
 export function useNow(intervalMs = 1000): Date | null {
   const [now, setNow] = useState<Date | null>(() => new Date());
   useEffect(() => {
-    setNow(new Date());
-    const id = setInterval(() => setNow(new Date()), intervalMs);
-    return () => clearInterval(id);
+    let id: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      setNow(new Date());
+      id = setTimeout(tick, intervalMs - (Date.now() % intervalMs));
+    };
+    tick();
+    return () => clearTimeout(id);
   }, [intervalMs]);
   return now;
 }
@@ -113,7 +117,7 @@ export function WidgetMessage({ children }: { children: React.ReactNode }) {
 
 export function WidgetSkeleton() {
   return (
-    <div className="flex h-full w-full flex-col justify-between">
+    <div className="flex h-full w-full animate-pulse flex-col justify-between">
       <div className="h-2.5 w-16 rounded-full bg-fill" />
       <div className="h-7 w-24 rounded-lg bg-fill" />
       <div className="h-2.5 w-20 rounded-full bg-fill" />

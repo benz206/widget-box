@@ -1,4 +1,5 @@
 import { cached } from "./cache";
+import { recordRequest } from "./usage";
 
 const CHART = "https://query1.finance.yahoo.com/v8/finance/chart";
 
@@ -37,6 +38,7 @@ async function loadQuote(symbol: string, signal: AbortSignal): Promise<Quote | n
       `${CHART}/${encodeURIComponent(symbol)}?range=${range}`,
       { headers: { Accept: "application/json" }, signal }
     );
+    recordRequest("yahoo");
     if (!res.ok) continue;
 
     const result = ((await res.json()) as Chart).chart.result?.[0];

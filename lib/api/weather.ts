@@ -1,5 +1,6 @@
 import { describeWeather, type WeatherKind } from "@/lib/weather-codes";
 import { cached } from "./cache";
+import { recordRequest } from "./usage";
 
 const GEOCODE = "https://geocoding-api.open-meteo.com/v1/search";
 const FORECAST = "https://api.open-meteo.com/v1/forecast";
@@ -60,6 +61,7 @@ async function getJson<T>(url: string, signal: AbortSignal): Promise<T> {
   let res: Response;
   try {
     res = await fetch(url, { signal });
+    recordRequest("open-meteo");
   } catch (error) {
     if ((error as Error).name === "AbortError") throw error;
     throw new Error("Weather service unavailable", { cause: error });

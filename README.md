@@ -65,7 +65,7 @@ Widgets fetch straight from the page, through `useRemote(key, fetcher)`:
 | `lib/api/markets.ts` | Markets | Yahoo Finance chart endpoint | 1 min |
 
 Responses are cached in `localStorage`, so opening a tab does not refetch
-anything still fresh. Yahoo sends no CORS headers; the manifest's host
+anything still fresh; **Refresh widget data** in settings clears that cache. Yahoo sends no CORS headers; the manifest's host
 permission is what lets the extension page read it. Failures degrade to a
 readable message inside the tile rather than to an empty box.
 
@@ -75,13 +75,20 @@ Photos come from [Unsplash](https://unsplash.com) using the access key in
 `.env.local`, which is compiled into the bundle — fine for your own install,
 not for publishing. Without a key the page falls back to the plain gradient.
 
-`lib/api/unsplash.ts` asks for 30 random landscape photos from one curated
-topic at a time and keeps them as a queue in `localStorage`. Each tab takes the
-next photo, which the previous tab already preloaded, so it appears instantly;
-the queue refills in the background when it runs low. The settings drawer picks
-the topic (Wallpapers, Nature, Travel, Architecture, Textures, Film) and whether
-the photo changes on every new tab, hourly, or daily. The ↻ button by the credit
-skips to the next photo.
+`lib/api/unsplash.ts` asks for 30 random landscape photos at a time — from a
+curated topic, a mix, or your own search — and keeps them as a queue in
+`localStorage`. A photo stays for at least 15 minutes (or an hour, or a day),
+and a tab left open crossfades to the next one when it is due. The photo on
+screen and the next two are stored in Cache Storage, so opening a tab reads them
+from disk rather than the network; anything else is pruned. The queue refills in
+the background when it runs low.
+
+Settings also cover motion (a slow drift, optionally following the pointer),
+dim, and blur, plus widget opacity and frost. **Next photo** and the ↻ by the
+credit skip ahead; **Fetch new photos** drops the queue for a fresh set.
+**Usage and limits** shows Unsplash's remaining hourly requests (read from its
+rate-limit headers), queued and cached photos, and how many requests Open-Meteo
+and Yahoo got today.
 
 Per Unsplash's guidelines, images are hotlinked from their CDN, the credit names
 and links the photographer and Unsplash, and the download endpoint is pinged
