@@ -21,6 +21,7 @@ import {
   findFirstFit,
   rectsOverlap,
   useDashboard,
+  DISPLAY_DEFAULTS,
   type DashboardPreferences,
 } from "@/lib/storage/dashboard";
 import { getWidgetById } from "@/lib/widgets/registry";
@@ -80,29 +81,75 @@ function useCanDrag(): boolean {
   return canDrag;
 }
 
+function Digit({ value }: { value: string }) {
+  const [shown, setShown] = useState({ current: value, previous: null as string | null });
+  if (shown.current !== value) setShown({ current: value, previous: shown.current });
+  return (
+    <span className="digit">
+      {shown.previous !== null && (
+        <span key={`out-${shown.previous}-${shown.current}`} aria-hidden className="digit-out">
+          {shown.previous}
+        </span>
+      )}
+      <span key={`in-${shown.current}`} className={shown.previous !== null ? "digit-in" : undefined}>
+        {shown.current}
+      </span>
+    </span>
+  );
+}
+
+function Ticker({ text }: { text: string }) {
+  return [...text].map((char, i) => <Digit key={text.length - i} value={char} />);
+}
+
 function Hero({ preferences }: { preferences?: DashboardPreferences }) {
   const now = useNow(1000) ?? new Date();
+  const display = { ...DISPLAY_DEFAULTS, ...preferences };
   const timeZone = preferences?.timezone;
   const hour = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone }).format(now));
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const time = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: preferences?.hour12 ?? true, timeZone })
-    .formatToParts(now)
-    .filter((part) => part.type === "hour" || part.type === "minute")
-    .map((part) => part.value)
-    .join(":");
+  const parts = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: display.hour12,
+    timeZone,
+  }).formatToParts(now);
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
   const name = preferences?.displayName;
 
   return (
     <header className="hero">
-      <p className="hero-date">
-        {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone })}
-      </p>
-      <time className="hero-clock tabular" dateTime={now.toISOString()}>
-        {time}
+      {display.showDate && (
+        <p className="hero-date">
+          {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone })}
+        </p>
+      )}
+      <time className="hero-clock tabular" dateTime={now.toISOString()} aria-label={`${part("hour")}:${part("minute")}`}>
+        <Ticker text={`${part("hour")}:${part("minute")}`} />
+        {display.showSeconds && (
+          <span className="hero-seconds">
+            <Ticker text={part("second")} />
+          </span>
+        )}
       </time>
-      <h1 className="hero-greeting">{`${greeting}${name ? `, ${name}` : ""}`}</h1>
+      {display.showGreeting && <h1 className="hero-greeting">{`${greeting}${name ? `, ${name}` : ""}`}</h1>}
     </header>
   );
+}
+
+function glassAlpha(base: number, value: number) {
+  const pivot = DISPLAY_DEFAULTS.tileOpacity;
+  return value <= pivot ? (base * value) / pivot : base + ((1 - base) * (value - pivot)) / (100 - pivot);
+}
+
+function useGlass(opacity: number, blur: number) {
+  useLayoutEffect(() => {
+    const root = document.documentElement.style;
+    root.setProperty("--glass-light", glassAlpha(0.74, opacity).toFixed(3));
+    root.setProperty("--glass-dark", glassAlpha(0.5, opacity).toFixed(3));
+    root.setProperty("--glass-blur", `${blur}px`);
+  }, [opacity, blur]);
 }
 
 function SearchBar() {
@@ -145,6 +192,8 @@ type Overlay = "library" | "settings" | "setup" | null;
 export default function NewTab() {
   const { state, actions } = useDashboard(SYSTEM_WIDGET_IDS);
   const [overlay, setOverlay] = useState<Overlay>(state === null ? "setup" : null);
+  const display = { ...DISPLAY_DEFAULTS, ...state?.preferences };
+  useGlass(display.tileOpacity, display.tileBlur);
   const [editMode, setEditMode] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [preview, setPreview] = useState<WidgetPosition | null>(null);
@@ -294,7 +343,7 @@ export default function NewTab() {
       </nav>
 
       <Hero preferences={state?.preferences} />
-      <SearchBar />
+      {display.showSearch && <SearchBar />}
 
       {instances.length === 0 && (
         <button type="button" className="glass-pill material focus-ring" onClick={() => setOverlay("library")}>

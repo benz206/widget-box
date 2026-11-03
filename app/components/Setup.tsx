@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import Button from "@/app/components/ui/Button";
 import Icon from "@/app/components/ui/Icon";
+import useDismiss from "@/app/components/ui/useDismiss";
 import StepFinish from "@/app/components/setup/StepFinish";
 import StepPreferences, { type Prefs } from "@/app/components/setup/StepPreferences";
 import StepPreset, { type PresetId } from "@/app/components/setup/StepPreset";
@@ -40,6 +41,7 @@ function initialConfig(widgetId: string, prefs: Prefs): Record<string, unknown> 
 
 export default function Setup({ onClose }: { onClose: () => void }) {
   const { state, actions } = useDashboard(SYSTEM_WIDGET_IDS);
+  const [closing, dismiss] = useDismiss(onClose);
 
   const [step, setStep] = useState(0);
   const [presetId, setPresetId] = useState<PresetId | null>(null);
@@ -97,18 +99,18 @@ export default function Setup({ onClose }: { onClose: () => void }) {
         })
       ),
     });
-    onClose();
+    dismiss();
   };
 
   const exit = () => {
     if (state === null) actions.replaceState(createEmptyDashboard());
-    onClose();
+    dismiss();
   };
 
   const last = step === STEPS.length - 1;
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Set up Widget Box" className="onboarding animate-fade-in">
+    <div role="dialog" aria-modal="true" aria-label="Set up Widget Box" className="onboarding animate-fade-in" data-closing={closing || undefined}>
       <header className="onboarding-bar material">
         <span className="sidebar-brand">
           <span className="brand-mark"><Icon name="grid" size={14} strokeWidth={2} /></span>

@@ -5,6 +5,7 @@ import ConfigForm from "@/app/components/ui/ConfigForm";
 import Icon from "@/app/components/ui/Icon";
 import Segmented from "@/app/components/ui/Segmented";
 import TilePreview from "@/app/components/widgets/TilePreview";
+import useDismiss from "@/app/components/ui/useDismiss";
 import {
   createInstance,
   DEFAULT_COLS,
@@ -36,13 +37,14 @@ export default function WidgetDetail({
     () => ({ ...(definition?.defaultConfig ?? {}) })
   );
   const [added, setAdded] = useState(false);
+  const [closing, dismiss] = useDismiss(onClose);
   const backdropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKeyDown = (e: KeyboardEvent) => e.key === "Escape" && dismiss();
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [dismiss]);
 
   const cols = state?.preferences.gridCols ?? DEFAULT_COLS;
   const rows = state?.preferences.gridRows ?? DEFAULT_ROWS;
@@ -59,8 +61,8 @@ export default function WidgetDetail({
     if (!spot) return;
     actions.addInstance(createInstance(widgetId, { size, position: spot, config }));
     setAdded(true);
-    setTimeout(onClose, 900);
-  }, [spot, actions, widgetId, size, config, onClose]);
+    setTimeout(dismiss, 900);
+  }, [spot, actions, widgetId, size, config, dismiss]);
 
   if (!definition) return null;
   const { meta } = definition;
@@ -70,8 +72,9 @@ export default function WidgetDetail({
   return (
     <div
       ref={backdropRef}
-      onPointerDown={(e) => e.target === backdropRef.current && onClose()}
+      onPointerDown={(e) => e.target === backdropRef.current && dismiss()}
       className="drawer-scrim animate-fade-in"
+      data-closing={closing || undefined}
     >
       <aside
         role="dialog"
@@ -88,7 +91,7 @@ export default function WidgetDetail({
             <h2 id="widget-detail-title" className="truncate">{meta.name}</h2>
             <p className="truncate">{meta.tagline}</p>
           </div>
-          <Button variant="ghost" size="sm" iconOnly autoFocus onClick={onClose} aria-label="Close">
+          <Button variant="ghost" size="sm" iconOnly autoFocus onClick={dismiss} aria-label="Close">
             <Icon name="xmark" size={14} />
           </Button>
         </header>
@@ -167,7 +170,7 @@ export default function WidgetDetail({
               No room at this size. Try a smaller one.
             </p>
           )}
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={dismiss}>Cancel</Button>
           <Button variant="primary" onClick={add} disabled={!spot || added}>
             <Icon name={added ? "check" : "plus"} size={14} />
             {added ? "Added" : installed > 0 ? "Add another" : "Add to dashboard"}

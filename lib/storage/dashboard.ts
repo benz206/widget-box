@@ -22,7 +22,23 @@ export type DashboardPreferences = {
   units?: "c" | "f";
   gridCols?: number;
   gridRows?: number;
+  showSeconds?: boolean;
+  showDate?: boolean;
+  showGreeting?: boolean;
+  showSearch?: boolean;
+  tileOpacity?: number;
+  tileBlur?: number;
 };
+
+export const DISPLAY_DEFAULTS = {
+  hour12: true,
+  showSeconds: false,
+  showDate: true,
+  showGreeting: true,
+  showSearch: true,
+  tileOpacity: 70,
+  tileBlur: 28,
+} satisfies DashboardPreferences;
 
 export type DashboardState = {
   version: 2;

@@ -4,6 +4,7 @@ import FilterPills from "@/app/components/ui/FilterPills";
 import Icon from "@/app/components/ui/Icon";
 import PageHeader from "@/app/components/ui/PageHeader";
 import Segmented from "@/app/components/ui/Segmented";
+import useDismiss from "@/app/components/ui/useDismiss";
 import WidgetCard from "@/app/components/marketplace/WidgetCard";
 import WidgetDetail from "@/app/components/marketplace/WidgetDetail";
 import WidgetTable from "@/app/components/marketplace/WidgetTable";
@@ -27,6 +28,7 @@ export default function Library({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [selected, setSelected] = useState<string | null>(null);
+  const [closing, dismiss] = useDismiss(onClose);
 
   const all = listWidgets();
   const categoryOptions = [
@@ -53,10 +55,10 @@ export default function Library({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     if (selected) return;
-    const onKeyDown = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKeyDown = (e: KeyboardEvent) => e.key === "Escape" && dismiss();
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [selected, onClose]);
+  }, [selected, dismiss]);
 
   const installed = useMemo(() => {
     const counts = new Map<string, number>();
@@ -69,14 +71,15 @@ export default function Library({ onClose }: { onClose: () => void }) {
   return (
     <div
       className="sheet-scrim animate-fade-in"
-      onPointerDown={(e) => e.target === e.currentTarget && onClose()}
+      data-closing={closing || undefined}
+      onPointerDown={(e) => e.target === e.currentTarget && dismiss()}
     >
       <div role="dialog" aria-modal="true" aria-label="Widget library" className="sheet card animate-sheet-in">
         <PageHeader
           title="Widget library"
           description={`${all.length} widgets. Add as many copies as you like; each one keeps its own settings.`}
           actions={
-            <Button variant="ghost" iconOnly autoFocus onClick={onClose} aria-label="Close library">
+            <Button variant="ghost" iconOnly autoFocus onClick={dismiss} aria-label="Close library">
               <Icon name="xmark" size={16} />
             </Button>
           }
