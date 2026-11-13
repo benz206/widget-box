@@ -70,7 +70,7 @@ async function getJson<T>(url: string, signal: AbortSignal): Promise<T> {
   return res.json();
 }
 
-function geocode(query: string, signal: AbortSignal): Promise<Place | null> {
+export function geocode(query: string, signal: AbortSignal): Promise<Place | null> {
   return cached(`geocode:${query.toLowerCase()}`, 86_400_000, async () => {
     const url = `${GEOCODE}?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
     const body = await getJson<{ results?: Place[] }>(url, signal);
