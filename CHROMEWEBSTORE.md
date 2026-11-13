@@ -135,7 +135,7 @@ Changes
 Changes to this policy will be posted at this URL with a new "Last updated" date.
 
 Contact
-57199957+benz206@users.noreply.github.com
+Questions about privacy: https://github.com/benz206/widget-box/issues
 ```
 
 ## Distribution
@@ -146,7 +146,7 @@ Contact
 ## Developer Info
 
 **Publisher Name**: Ben Zhou
-**Contact Email**: 57199957+benz206@users.noreply.github.com
+**Contact Email**: _a dedicated address, not your personal one (shown on the listing; verified in the dashboard)_
 **Support URL**: https://github.com/benz206/widget-box/issues
 **Homepage URL**: https://github.com/benz206/widget-box
 
