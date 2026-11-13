@@ -3,7 +3,6 @@ export type Appearance = "light" | "dark" | "system";
 export const APPEARANCE_KEY = "widget-box:appearance";
 
 export function readAppearance(): Appearance {
-  if (typeof window === "undefined") return "system";
   const v = localStorage.getItem(APPEARANCE_KEY);
   return v === "light" || v === "dark" ? v : "system";
 }

@@ -51,7 +51,6 @@ export function useWidgetState<T>(
 
 /** Drops everything a removed instance was holding on to. */
 export function clearWidgetState(instanceId: string): void {
-  if (typeof window === "undefined") return;
   const prefix = `${PREFIX}${instanceId}:`;
   for (let i = localStorage.length - 1; i >= 0; i--) {
     const k = localStorage.key(i);
