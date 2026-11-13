@@ -153,6 +153,14 @@ function useGlass(opacity: number, blur: number) {
   }, [opacity, blur]);
 }
 
+function useRadii(tile: number, search: number) {
+  useLayoutEffect(() => {
+    const root = document.documentElement.style;
+    root.setProperty("--tile-radius", `${tile}px`);
+    root.setProperty("--search-radius", `${search}px`);
+  }, [tile, search]);
+}
+
 function SearchBar() {
   const [query, setQuery] = useState("");
   return (
@@ -195,6 +203,7 @@ export default function NewTab() {
   const [overlay, setOverlay] = useState<Overlay>(state === null ? "setup" : null);
   const display = { ...DISPLAY_DEFAULTS, ...state?.preferences };
   useGlass(display.tileOpacity, display.tileBlur);
+  useRadii(display.tileRadius, display.searchRadius);
   const [editMode, setEditMode] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [preview, setPreview] = useState<WidgetPosition | null>(null);

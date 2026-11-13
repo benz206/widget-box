@@ -10,7 +10,11 @@ function read<T>(key: string): Entry<T> | null {
   }
 }
 
-function write<T>(key: string, value: T): void {
+export function peek<T>(key: string): T | null {
+  return read<T>(key)?.value ?? null;
+}
+
+export function write<T>(key: string, value: T): void {
   try {
     localStorage.setItem(PREFIX + key, JSON.stringify({ at: Date.now(), value }));
   } catch {

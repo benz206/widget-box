@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  BACKDROP_CREDITS,
   BACKDROP_FREQUENCIES,
   BACKDROP_MOTIONS,
   refreshPhotos,
@@ -44,6 +45,11 @@ const WIDGET_FIELDS: ConfigField[] = [
   { kind: "range", key: "tileBlur", label: "Frost", min: 0, max: 48, unit: "px" },
 ];
 
+const CORNER_FIELDS: ConfigField[] = [
+  { kind: "range", key: "tileRadius", label: "Widgets and cards", min: 0, max: 32, unit: "px", help: "Also the now-playing card and photo credit." },
+  { kind: "range", key: "searchRadius", label: "Search bar", min: 0, max: 24, unit: "px" },
+];
+
 const PHOTO_FIELDS: ConfigField[] = [
   { kind: "select", key: "topic", label: "Photos of", options: BACKDROP_TOPICS },
 ];
@@ -53,6 +59,7 @@ const BACKDROP_FIELDS: ConfigField[] = [
   { kind: "select", key: "motion", label: "Motion", options: BACKDROP_MOTIONS },
   { kind: "range", key: "dim", label: "Dim", min: 0, max: 80, unit: "%" },
   { kind: "range", key: "blur", label: "Blur", min: 0, max: 24, unit: "px" },
+  { kind: "select", key: "credit", label: "Photo credit", options: BACKDROP_CREDITS },
 ];
 
 const NOW_PLAYING_FIELDS: ConfigField[] = [
@@ -314,7 +321,7 @@ export default function Settings({
   return (
     <div
       onPointerDown={(e) => e.target === e.currentTarget && dismiss()}
-      className="sheet-scrim animate-fade-in"
+      className="sheet-scrim"
       data-closing={closing || undefined}
     >
       <div role="dialog" aria-modal="true" aria-labelledby="settings-title" className="settings animate-sheet-in">
@@ -406,9 +413,15 @@ export default function Settings({
             )}
 
             {tab === "widgets" && (
-              <section>
-                <ConfigForm fields={WIDGET_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
-              </section>
+              <>
+                <section>
+                  <ConfigForm fields={WIDGET_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
+                </section>
+                <section>
+                  <h4 className="drawer-section-title">Corner radius</h4>
+                  <ConfigForm fields={CORNER_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
+                </section>
+              </>
             )}
 
             {tab === "background" && (

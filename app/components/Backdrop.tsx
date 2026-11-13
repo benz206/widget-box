@@ -31,6 +31,7 @@ const PARALLAX_PX = 14;
 const FREQUENCY_MS = { quarter: 900_000, hour: 3_600_000, day: 86_400_000 };
 type Frequency = keyof typeof FREQUENCY_MS;
 type Motion = "still" | "drift" | "parallax";
+type Credit = "shown" | "hover";
 
 export const BACKDROP_FREQUENCIES: { value: Frequency; label: string }[] = [
   { value: "quarter", label: "Every 15 minutes" },
@@ -44,6 +45,11 @@ export const BACKDROP_MOTIONS: { value: Motion; label: string }[] = [
   { value: "still", label: "Still" },
 ];
 
+export const BACKDROP_CREDITS: { value: Credit; label: string }[] = [
+  { value: "shown", label: "Always" },
+  { value: "hover", label: "Only on hover" },
+];
+
 export type BackdropSettings = {
   topic: string;
   query: string;
@@ -51,6 +57,7 @@ export type BackdropSettings = {
   motion: Motion;
   dim: number;
   blur: number;
+  credit: Credit;
 };
 
 const DEFAULT_SETTINGS: BackdropSettings = {
@@ -60,6 +67,7 @@ const DEFAULT_SETTINGS: BackdropSettings = {
   motion: "parallax",
   dim: 0,
   blur: 0,
+  credit: "shown",
 };
 
 const clamp = (value: unknown, min: number, max: number, fallback: number) =>
@@ -75,6 +83,7 @@ function readSettings(): BackdropSettings {
       motion: BACKDROP_MOTIONS.some((m) => m.value === saved.motion) ? saved.motion : DEFAULT_SETTINGS.motion,
       dim: clamp(saved.dim, 0, 80, DEFAULT_SETTINGS.dim),
       blur: clamp(saved.blur, 0, 24, DEFAULT_SETTINGS.blur),
+      credit: BACKDROP_CREDITS.some((c) => c.value === saved.credit) ? saved.credit : DEFAULT_SETTINGS.credit,
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -367,8 +376,14 @@ export default function Backdrop() {
         <div className="backdrop-scrim" />
       </div>
       {current && (
-        <div key={current.id} className="backdrop-credit animate-fade-in" title={current.alt}>
-          <span className="truncate">
+        <div
+          key={current.id}
+          className="backdrop-credit corner-card material squircle animate-fade-in"
+          data-mode={settings.credit}
+          title={current.alt}
+        >
+          <Icon name="photo" size={14} />
+          <span className="backdrop-credit-text truncate">
             Photo by{" "}
             <a href={current.authorUrl} target="_blank" rel="noopener noreferrer" className="focus-ring">
               {current.author}
