@@ -396,23 +396,10 @@ export default function Backdrop() {
       </div>
       {current && (
         <div
-          key={current.id}
-          className="backdrop-credit corner-card material squircle animate-fade-in"
+          className="backdrop-credit corner-card material squircle"
           data-mode={settings.credit}
           title={current.alt}
         >
-          <Icon name="photo" size={14} />
-          <span className="backdrop-credit-text truncate">
-            Photo by{" "}
-            <a href={current.authorUrl} target="_blank" rel="noopener noreferrer" className="focus-ring">
-              {current.author}
-            </a>{" "}
-            on{" "}
-            <a href={UNSPLASH_HOME} target="_blank" rel="noopener noreferrer" className="focus-ring">
-              Unsplash
-            </a>
-            {current.location && <span className="backdrop-location"> · {current.location}</span>}
-          </span>
           <button
             type="button"
             title={favorites.some((p) => p.id === current.id) ? "Remove from favorites" : "Add to favorites"}
@@ -432,6 +419,17 @@ export default function Backdrop() {
           >
             <Icon name="reset" size={13} />
           </button>
+          <span key={current.id} className="backdrop-credit-text truncate animate-fade-in">
+            Photo by{" "}
+            <a href={current.authorUrl} target="_blank" rel="noopener noreferrer" className="focus-ring">
+              {current.author}
+            </a>{" "}
+            on{" "}
+            <a href={UNSPLASH_HOME} target="_blank" rel="noopener noreferrer" className="focus-ring">
+              Unsplash
+            </a>
+            {current.location && <span className="backdrop-location"> · {current.location}</span>}
+          </span>
         </div>
       )}
     </>
