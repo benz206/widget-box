@@ -28,6 +28,8 @@ export type DashboardPreferences = {
   showSearch?: boolean;
   tileOpacity?: number;
   tileBlur?: number;
+  tileRadius?: number;
+  searchRadius?: number;
   nowPlaying?: "corner" | "widget";
   layout?: "centered" | "left" | "split";
 };
@@ -40,6 +42,8 @@ export const DISPLAY_DEFAULTS = {
   showSearch: true,
   tileOpacity: 70,
   tileBlur: 28,
+  tileRadius: 14,
+  searchRadius: 24,
   nowPlaying: "corner",
   layout: "centered",
 } satisfies DashboardPreferences;
