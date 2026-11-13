@@ -40,8 +40,8 @@ function PomodoroView({ instanceId, size, config }: WidgetViewProps) {
     completed: 0,
   });
 
-  const now = useNow(500);
   const running = timer.endsAt !== null;
+  const now = useNow(running ? 500 : null);
   const totalMs = timer.mode === "focus" ? focusMs : breakMs;
   // A pristine timer follows the configured length, so editing the interval in
   // settings is reflected immediately.

@@ -42,8 +42,12 @@ function readTokens(): Tokens | null {
 }
 
 function writeTokens(tokens: Tokens | null) {
-  if (tokens) localStorage.setItem(KEY, JSON.stringify(tokens));
-  else localStorage.removeItem(KEY);
+  try {
+    if (tokens) localStorage.setItem(KEY, JSON.stringify(tokens));
+    else localStorage.removeItem(KEY);
+  } catch {
+    return;
+  }
   window.dispatchEvent(new Event(CHANGED_EVENT));
 }
 

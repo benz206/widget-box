@@ -1,3 +1,4 @@
+import { useId } from "react";
 import Icon from "@/app/components/ui/Icon";
 import { CATEGORY_LABELS, getWidgetById, listByCategory } from "@/lib/widgets/registry";
 
@@ -57,6 +58,7 @@ export default function StepPreset({
   onPickPreset: (id: PresetId, widgetIds: string[]) => void;
   onToggleWidget: (widgetId: string) => void;
 }) {
+  const name = useId();
   return (
     <div>
       <h2 className="step-title">Choose a starting point</h2>
@@ -64,15 +66,16 @@ export default function StepPreset({
         You can add, remove, and rearrange everything later.
       </p>
 
-      <div className="mt-6 grid gap-2 sm:grid-cols-2">
+      <div role="radiogroup" aria-label="Starting point" className="mt-6 grid gap-2 sm:grid-cols-2">
         {PRESETS.map((preset) => (
-          <button
-            key={preset.id}
-            type="button"
-            aria-pressed={presetId === preset.id}
-            onClick={() => onPickPreset(preset.id, [...preset.widgetIds])}
-            className="choice-card focus-ring"
-          >
+          <label key={preset.id} className="choice-card focus-ring relative cursor-pointer">
+            <input
+              type="radio"
+              name={name}
+              checked={presetId === preset.id}
+              onChange={() => onPickPreset(preset.id, [...preset.widgetIds])}
+              className="sr-only"
+            />
             <span className="flex items-center justify-between gap-2">
               <span className="text-[13px] font-semibold">{preset.name}</span>
               <span className="radio" aria-hidden />
@@ -100,7 +103,7 @@ export default function StepPreset({
                 </span>
               )}
             </span>
-          </button>
+          </label>
         ))}
       </div>
 

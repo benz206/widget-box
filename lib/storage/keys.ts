@@ -20,5 +20,9 @@ export function apiKey(name: ApiKeyName): string | undefined {
 }
 
 export function saveApiKey(name: ApiKeyName, value: string): void {
-  localStorage.setItem(KEY, JSON.stringify({ ...readSaved(), [name]: value.trim() }));
+  try {
+    localStorage.setItem(KEY, JSON.stringify({ ...readSaved(), [name]: value.trim() }));
+  } catch {
+    return;
+  }
 }

@@ -18,17 +18,18 @@ const EVENTS = ["levelchange", "chargingchange", "chargingtimechange", "discharg
 /** Battery Status API — Chromium only; Safari and Firefox removed it. */
 function useBattery(): { reading: Reading | null; supported: boolean | null } {
   const [reading, setReading] = useState<Reading | null>(null);
-  const [supported, setSupported] = useState<boolean | null>(null);
+  const [supported, setSupported] = useState<boolean | null>(() =>
+    typeof (navigator as Navigator & { getBattery?: unknown }).getBattery === "function"
+      ? null
+      : false
+  );
 
   useEffect(() => {
     const getBattery = (
       navigator as Navigator & { getBattery?: () => Promise<BatteryManager> }
     ).getBattery;
 
-    if (typeof getBattery !== "function") {
-      setSupported(false);
-      return;
-    }
+    if (typeof getBattery !== "function") return;
 
     let battery: BatteryManager | null = null;
     let cancelled = false;

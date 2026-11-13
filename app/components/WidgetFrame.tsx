@@ -6,6 +6,7 @@ import type { WidgetPosition } from "@/lib/widgets/types";
 
 type Props = {
   id: string;
+  label: string;
   position: WidgetPosition;
   children: React.ReactNode;
   editMode: boolean;
@@ -42,6 +43,7 @@ function ToolbarButton({
 
 export default function WidgetFrame({
   id,
+  label,
   position,
   children,
   editMode,
@@ -49,7 +51,7 @@ export default function WidgetFrame({
   onRemove,
   onOpenSettings,
 }: Props) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } = useDraggable({
     id,
     disabled: !draggable,
   });
@@ -79,6 +81,7 @@ export default function WidgetFrame({
     <div
       ref={(node) => {
         setNodeRef(node);
+        setActivatorNodeRef(node);
         nodeRef.current = node;
       }}
       className={[
@@ -103,6 +106,7 @@ export default function WidgetFrame({
       data-editing={editMode || undefined}
       {...(draggable ? listeners : {})}
       {...(draggable ? attributes : {})}
+      aria-label={draggable ? label : undefined}
       onContextMenu={(e) => {
         // Leave the native menu alone over anything the widget made editable.
         if ((e.target as HTMLElement).closest("input, textarea, select, a, button")) {
