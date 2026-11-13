@@ -14,6 +14,10 @@ export function applyAppearance(pref: Appearance): void {
     (pref === "system" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.dataset.appearance = dark ? "dark" : "light";
-  if (pref === "system") localStorage.removeItem(APPEARANCE_KEY);
-  else localStorage.setItem(APPEARANCE_KEY, pref);
+  try {
+    if (pref === "system") localStorage.removeItem(APPEARANCE_KEY);
+    else localStorage.setItem(APPEARANCE_KEY, pref);
+  } catch {
+    return;
+  }
 }

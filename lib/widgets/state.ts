@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 const PREFIX = "widget-box:widget-state:v1:";
 
@@ -24,20 +24,10 @@ export function useWidgetState<T>(
   instanceId: string,
   name: string,
   initial: T
-): [T, (next: T | ((prev: T) => T)) => void, boolean] {
+): [T, (next: T | ((prev: T) => T)) => void] {
   const storageKey = key(instanceId, name);
   const [value, setValue] = useState<T>(() => read(storageKey) ?? initial);
-  const [loaded, setLoaded] = useState(false);
   const valueRef = useRef(value);
-
-  useEffect(() => {
-    const stored = read<T>(storageKey);
-    if (stored !== null) {
-      valueRef.current = stored;
-      setValue(stored);
-    }
-    setLoaded(true);
-  }, [storageKey]);
 
   const update = useCallback(
     (next: T | ((prev: T) => T)) => {
@@ -56,7 +46,7 @@ export function useWidgetState<T>(
     [storageKey]
   );
 
-  return [value, update, loaded];
+  return [value, update];
 }
 
 /** Drops everything a removed instance was holding on to. */
@@ -65,6 +55,11 @@ export function clearWidgetState(instanceId: string): void {
   const prefix = `${PREFIX}${instanceId}:`;
   for (let i = localStorage.length - 1; i >= 0; i--) {
     const k = localStorage.key(i);
-    if (k?.startsWith(prefix)) localStorage.removeItem(k);
+    if (!k?.startsWith(prefix)) continue;
+    try {
+      localStorage.removeItem(k);
+    } catch {
+      return;
+    }
   }
 }

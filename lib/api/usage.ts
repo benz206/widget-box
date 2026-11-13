@@ -14,7 +14,11 @@ function read(): Usage {
     const usage = JSON.parse(localStorage.getItem(KEY) ?? "null") as Usage | null;
     if (usage) return usage.day === today() ? usage : { ...usage, day: today(), counts: {} };
   } catch {
-    localStorage.removeItem(KEY);
+    try {
+      localStorage.removeItem(KEY);
+    } catch {
+      return { day: today(), counts: {} };
+    }
   }
   return { day: today(), counts: {} };
 }
