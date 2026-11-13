@@ -33,6 +33,11 @@ export async function cached<T>(key: string, ttlMs: number, load: () => Promise<
 export function clearCache(): void {
   for (let i = localStorage.length - 1; i >= 0; i--) {
     const key = localStorage.key(i);
-    if (key?.startsWith(PREFIX)) localStorage.removeItem(key);
+    if (!key?.startsWith(PREFIX)) continue;
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      return;
+    }
   }
 }
