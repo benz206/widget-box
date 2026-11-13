@@ -453,12 +453,10 @@ export default function NewTab() {
         </div>
       )}
 
-      {notice && (
-        <div role="status" className="toast" style={{ bottom: editMode ? 88 : 24 }}>
-          <Icon name="alert" size={15} />
-          {notice}
-        </div>
-      )}
+      <div role="status" className="toast" data-open={notice ? true : undefined} style={{ bottom: editMode ? 88 : 24 }}>
+        {notice && <Icon name="alert" size={15} />}
+        {notice}
+      </div>
 
       {display.nowPlaying === "corner" && <NowPlaying />}
 
