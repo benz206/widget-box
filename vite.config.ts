@@ -9,6 +9,7 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL(".", import.meta.url)) },
   },
   build: {
+    emptyOutDir: false,
     rollupOptions: { input: "newtab.html" },
   },
 });
