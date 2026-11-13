@@ -30,7 +30,7 @@ export function useSpotifyConnected(): boolean {
 
 export function useNowPlaying() {
   const connected = useSpotifyConnected();
-  const remote = useRemote<NowPlaying | null>(connected ? "spotify" : null, fetchNowPlaying, POLL_MS);
+  const remote = useRemote<NowPlaying | null>(connected ? "spotify" : null, fetchNowPlaying, POLL_MS, false);
   return { connected, ...remote };
 }
 

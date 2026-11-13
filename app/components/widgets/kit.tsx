@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Icon, { type IconName } from "@/app/components/ui/Icon";
+import { peek, write } from "@/lib/api/cache";
 import type { WeatherKind } from "@/lib/weather-codes";
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
@@ -21,17 +22,22 @@ export function useNow(intervalMs = 1000): Date | null {
 
 type Remote<T> = { data: T | null; error: string | null; loading: boolean };
 
+function snapshot<T>(key: string | null, persist: boolean): T | null {
+  return key && persist ? peek<T>(`remote:${key}`) : null;
+}
+
 /** Fetches JSON, refreshes on an interval, and pauses while the tab is hidden. */
 export function useRemote<T>(
   key: string | null,
   fetcher: (signal: AbortSignal) => Promise<T>,
-  refreshMs?: number
+  refreshMs?: number,
+  persist = true
 ): Remote<T> {
-  const [state, setState] = useState<Remote<T>>({
-    data: null,
+  const [state, setState] = useState<Remote<T>>(() => ({
+    data: snapshot<T>(key, persist),
     error: null,
     loading: Boolean(key),
-  });
+  }));
   const fetcherRef = useRef(fetcher);
   useEffect(() => {
     fetcherRef.current = fetcher;
@@ -53,6 +59,7 @@ export function useRemote<T>(
       try {
         const data = await fetcherRef.current(controller.signal);
         if (cancelled) return;
+        if (persist) write(`remote:${key}`, data);
         setState({ data, error: null, loading: false });
       } catch (error) {
         if (cancelled || (error as Error).name === "AbortError") return;
@@ -66,7 +73,7 @@ export function useRemote<T>(
 
     // A new url means different data — keeping the old response on screen
     // would show the previous city's weather under the new city's name.
-    setState({ data: null, error: null, loading: true });
+    setState({ data: snapshot<T>(key, persist), error: null, loading: true });
     load();
 
     const id = refreshMs ? setInterval(load, refreshMs) : null;
@@ -79,7 +86,7 @@ export function useRemote<T>(
       if (id) clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [key, refreshMs]);
+  }, [key, refreshMs, persist]);
 
   return state;
 }

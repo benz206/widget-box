@@ -70,7 +70,7 @@ export default function Library({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="sheet-scrim animate-fade-in"
+      className="sheet-scrim"
       data-closing={closing || undefined}
       onPointerDown={(e) => e.target === e.currentTarget && dismiss()}
     >
