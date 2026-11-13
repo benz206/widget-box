@@ -1,0 +1,41 @@
+name: Bug report
+description: Something on the new tab is broken or wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Add the Weather widget
+        2. Set the city to …
+        3. Open a new tab
+  - type: input
+    id: widget
+    attributes:
+      label: Widget
+      placeholder: Weather, Markets, Spotify, …
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 142, Arc, Brave, …
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installed from
+      options:
+        - Chrome Web Store
+        - Unpacked build
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag images here. Leave out any API keys.
