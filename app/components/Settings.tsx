@@ -180,6 +180,7 @@ function thumbnail(raw: string) {
   url.searchParams.set("h", "200");
   url.searchParams.set("fit", "crop");
   url.searchParams.set("q", "70");
+  url.searchParams.set("fm", "avif");
   return url.toString();
 }
 
