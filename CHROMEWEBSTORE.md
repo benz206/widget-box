@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Widget Box
 
-> Last Updated: 2026-11-12
+> Last Updated: 2026-11-13
 
 ## Store Listing
 
@@ -154,7 +154,7 @@ Questions about privacy: https://github.com/benz206/widget-box/issues
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
-| 0.1.0 | 2026-11-12 | Initial release | Draft |
+| 0.1.0 | 2026-11-12 | Initial release | Published |
 
 ## Review Notes
 
