@@ -822,11 +822,40 @@ html { container-type: scroll-state; }
 }
 .animate-fade-in { animation: fade-in 200ms linear; }
 
+.breathe-orb {
+  opacity: 0.85;
+  transform: scale(var(--orb-scale));
+  transition: transform var(--orb-seconds) ease-in-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
+  @keyframes rise-in { from { opacity: 0; } }
+  @keyframes tile-in { from { opacity: 0; } }
+  @keyframes sheet-in { from { opacity: 0; } }
+  @keyframes drawer-in { from { opacity: 0; } }
+  @keyframes drawer-out { to { opacity: 0; } }
+  @keyframes sheet-out { to { opacity: 0; } }
+  @keyframes digit-in { from { opacity: 0; filter: blur(6px); } }
+  @keyframes digit-out { to { opacity: 0; filter: blur(6px); } }
+
+  .newtab-board .grid-item:not(.drop-preview) > section,
+  .newtab-board .grid-cell-guide { animation-delay: 0s; }
+  .newtab-board .grid-item[data-editing] > section { animation: tile-in 640ms var(--ease-out-ios) backwards; }
+  .newtab-board .grid-item:not([data-editing]) > section:hover,
+  .corner-card:hover,
+  .glass-btn:hover,
+  .glass-btn[aria-pressed="true"],
+  .glass-btn:active,
+  .glass-btn:hover > svg[data-icon="gear"] { transform: none; }
+
+  .backdrop-layer { animation-name: backdrop-in, none; }
+  .backdrop-stage { transition: none; }
+  .search-bar { transition: background-color 240ms linear, box-shadow 240ms linear; }
+  .now-playing-eq i { animation: none; }
+
+  .breathe-orb {
+    opacity: var(--orb-opacity);
+    transform: none;
+    transition: opacity var(--orb-seconds) ease-in-out;
   }
 }
