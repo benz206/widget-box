@@ -3,7 +3,6 @@ export type Appearance = "light" | "dark" | "system";
 export const APPEARANCE_KEY = "widget-box:appearance";
 
 export function readAppearance(): Appearance {
-  if (typeof window === "undefined") return "system";
   const v = localStorage.getItem(APPEARANCE_KEY);
   return v === "light" || v === "dark" ? v : "system";
 }
@@ -16,6 +15,10 @@ export function applyAppearance(pref: Appearance): void {
   document.documentElement.dataset.appearance = dark ? "dark" : "light";
   document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]')!.content =
     pref === "system" ? "light dark" : pref;
-  if (pref === "system") localStorage.removeItem(APPEARANCE_KEY);
-  else localStorage.setItem(APPEARANCE_KEY, pref);
+  try {
+    if (pref === "system") localStorage.removeItem(APPEARANCE_KEY);
+    else localStorage.setItem(APPEARANCE_KEY, pref);
+  } catch {
+    return;
+  }
 }

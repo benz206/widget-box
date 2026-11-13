@@ -12,8 +12,9 @@ bun run build
 Then open `chrome://extensions`, turn on **Developer mode**, choose **Load
 unpacked**, and pick the `dist` folder. It works the same in Edge, Brave, and Arc.
 
-API keys are entered under **Settings → Connections** and kept in
-`localStorage`. For your own builds, `.env.local` can supply defaults
+API keys are entered under **Settings → Background** (Unsplash) and
+**Settings → Spotify**, and kept in `localStorage`. For your own builds,
+`.env.local` can supply defaults
 (`VITE_UNSPLASH_ACCESS_KEY`, `VITE_SPOTIFY_CLIENT_ID`); these are compiled into
 the bundle, so leave them out of anything you hand to other people.
 

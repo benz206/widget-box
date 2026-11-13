@@ -27,7 +27,6 @@ export const BACKDROP_TOPICS = [
   { value: "upmleWZC83Y", label: "Patterns" },
   { value: "If65AuNOOxQ", label: "Illustrated wallpapers" },
   { value: "M4lsf7LQDRA", label: "Illustrated nature" },
-  { value: FAVORITES_TOPIC, label: "Your favorites" },
   { value: CUSTOM_TOPIC, label: "Custom search…" },
 ];
 
@@ -87,7 +86,7 @@ export function photoSrc(photo: BackdropPhoto): string {
   const url = new URL(photo.raw);
   url.searchParams.set("w", String(width));
   url.searchParams.set("q", "80");
-  url.searchParams.set("fm", "jpg");
+  url.searchParams.set("fm", "avif");
   url.searchParams.set("fit", "max");
   return url.toString();
 }
