@@ -42,6 +42,7 @@ export default function WidgetTile({
   return (
     <WidgetFrame
       id={instance.instanceId}
+      label={definition.meta.name}
       position={instance.position}
       editMode={editMode}
       draggable={draggable}
