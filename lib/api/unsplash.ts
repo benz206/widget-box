@@ -27,7 +27,6 @@ export const BACKDROP_TOPICS = [
   { value: "upmleWZC83Y", label: "Patterns" },
   { value: "If65AuNOOxQ", label: "Illustrated wallpapers" },
   { value: "M4lsf7LQDRA", label: "Illustrated nature" },
-  { value: FAVORITES_TOPIC, label: "Your favorites" },
   { value: CUSTOM_TOPIC, label: "Custom search…" },
 ];
 

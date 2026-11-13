@@ -502,12 +502,16 @@ html { container-type: scroll-state; }
 .favorite-btn svg { transition: transform 200ms var(--ease-out-ios); }
 
 .favorites-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
-.favorite-thumb { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border-radius: var(--radius-control); background-size: cover; background-position: center; }
-.favorite-thumb button {
+.favorite-thumb { position: relative; aspect-ratio: 16 / 10; border-radius: var(--radius-control); }
+.favorite-show { display: block; width: 100%; height: 100%; overflow: hidden; border-radius: inherit; }
+.favorite-show img { width: 100%; height: 100%; object-fit: cover; transition: transform 320ms var(--ease-out-ios); }
+.favorite-show:hover img { transform: scale(1.04); }
+.favorite-show[aria-current="true"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+.favorite-remove {
   position: absolute; top: 4px; right: 4px; display: grid; place-items: center; width: 22px; height: 22px;
   border-radius: 50%; background: rgb(0 0 0 / 0.5); color: #fff; opacity: 0; transition: opacity 160ms linear;
 }
-.favorite-thumb:hover button, .favorite-thumb button:focus-visible { opacity: 1; }
+.favorite-thumb:hover .favorite-remove, .favorite-remove:focus-visible { opacity: 1; }
 
 .now-playing {
   right: 16px; gap: 10px; width: min(300px, calc(50vw - 24px)); padding: 7px 14px 7px 7px; overflow: hidden;
