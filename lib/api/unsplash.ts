@@ -87,7 +87,7 @@ export function photoSrc(photo: BackdropPhoto): string {
   const url = new URL(photo.raw);
   url.searchParams.set("w", String(width));
   url.searchParams.set("q", "80");
-  url.searchParams.set("fm", "jpg");
+  url.searchParams.set("fm", "avif");
   url.searchParams.set("fit", "max");
   return url.toString();
 }
