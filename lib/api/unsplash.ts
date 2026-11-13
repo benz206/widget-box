@@ -134,7 +134,13 @@ export async function imageCacheStats(): Promise<{ count: number; bytes: number 
   try {
     const cache = await caches.open(IMAGE_CACHE);
     const responses = await Promise.all((await cache.keys()).map((request) => cache.match(request)));
-    const sizes = await Promise.all(responses.map(async (res) => (res ? (await res.blob()).size : 0)));
+    const sizes = await Promise.all(
+      responses.map(async (res) => {
+        if (!res) return 0;
+        const length = Number(res.headers.get("Content-Length"));
+        return length > 0 ? length : (await res.blob()).size;
+      })
+    );
     return { count: sizes.length, bytes: sizes.reduce((sum, size) => sum + size, 0) };
   } catch {
     return { count: 0, bytes: 0 };
