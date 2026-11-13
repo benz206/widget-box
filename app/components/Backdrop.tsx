@@ -141,7 +141,11 @@ function readDeck(source: string): Deck {
     const deck = JSON.parse(localStorage.getItem(DECK_KEY) ?? "null") as Deck | null;
     if (deck?.source === source && Array.isArray(deck.queue)) return deck;
   } catch {
-    localStorage.removeItem(DECK_KEY);
+    try {
+      localStorage.removeItem(DECK_KEY);
+    } catch {
+      return { source, current: null, shownAt: 0, queue: [] };
+    }
   }
   return { source, current: null, shownAt: 0, queue: [] };
 }
