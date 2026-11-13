@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import {
   BACKDROP_CREDITS,
   BACKDROP_FREQUENCIES,
@@ -338,228 +338,232 @@ export default function Settings({
   const narrow = useSyncExternalStore(subscribeNarrow, isNarrow);
   const id = useId();
   const layoutName = useId();
-  const [closing, dismiss] = useDismiss(onClose);
+  const ref = useRef<HTMLDialogElement>(null);
+  const [closing, dismiss] = useDismiss(() => ref.current?.close());
   const display = { ...DISPLAY_DEFAULTS, ...preferences };
   const current = TABS.find((t) => t.id === tab)!;
 
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => e.key === "Escape" && dismiss();
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [dismiss]);
+    ref.current?.showModal();
+  }, []);
 
   return (
-    <div
-      onPointerDown={(e) => e.target === e.currentTarget && dismiss()}
-      className="sheet-scrim"
+    <dialog
+      ref={ref}
+      closedby="any"
+      aria-labelledby="settings-title"
+      className="settings animate-sheet-in"
       data-closing={closing || undefined}
+      onCancel={(e) => {
+        e.preventDefault();
+        dismiss();
+      }}
+      onClose={onClose}
     >
-      <div role="dialog" aria-modal="true" aria-labelledby="settings-title" className="settings animate-sheet-in">
-        <div className="settings-nav">
-          <h2 id="settings-title">Settings</h2>
-          <div
-            role="tablist"
-            aria-label="Settings sections"
-            aria-orientation={narrow ? "horizontal" : "vertical"}
-            className="settings-tabs"
-            {...TABLIST_FOCUS}
-          >
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                id={`${id}-${t.id}`}
-                type="button"
-                role="tab"
-                aria-selected={t.id === tab}
-                onFocus={() => setTab(t.id)}
-                onClick={() => setTab(t.id)}
-                className="settings-nav-item focus-ring"
-                {...(t.id === tab && { focusgroupstart: "" })}
-              >
-                <Icon name={t.icon} size={15} />
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="settings-pane">
-          <header className="settings-pane-header">
-            <div className="min-w-0 flex-1">
-              <h3>{current.label}</h3>
-              <p>{current.description}</p>
-            </div>
-            <Button variant="ghost" size="sm" iconOnly autoFocus onClick={dismiss} aria-label="Close">
-              <Icon name="xmark" size={14} />
-            </Button>
-          </header>
-
-          <div key={tab} role="tabpanel" aria-labelledby={`${id}-${tab}`} className="settings-pane-body animate-fade-in">
-            {tab === "general" && (
-              <>
-                <section>
-                  <h4 className="drawer-section-title">Layout</h4>
-                  <div role="radiogroup" aria-label="Layout" className="layout-picker">
-                    {LAYOUTS.map((layout) => (
-                      <label key={layout.value} className="layout-option focus-ring relative cursor-pointer">
-                        <input
-                          type="radio"
-                          name={layoutName}
-                          checked={display.layout === layout.value}
-                          onChange={() => onChange({ layout: layout.value })}
-                          className="sr-only"
-                        />
-                        <span className="layout-diagram" data-layout={layout.value} aria-hidden>
-                          <span className="layout-diagram-intro">
-                            <i />
-                            <i />
-                          </span>
-                          <span className="layout-diagram-grid">
-                            <i />
-                            <i />
-                            <i />
-                          </span>
-                        </span>
-                        {layout.label}
-                      </label>
-                    ))}
-                  </div>
-                </section>
-                <section>
-                  <h4 className="drawer-section-title">Clock and greeting</h4>
-                  <ConfigForm fields={HEADER_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
-                </section>
-                <section>
-                  <h4 className="drawer-section-title">Appearance</h4>
-                  <Segmented
-                    options={APPEARANCES}
-                    value={appearance}
-                    onChange={(next) => {
-                      setAppearance(next);
-                      applyAppearance(next);
-                    }}
-                    className="w-full"
-                  />
-                </section>
-                <section>
-                  <h4 className="drawer-section-title">Dashboard</h4>
-                  <p className="mb-3 text-[13px] text-secondary text-pretty">
-                    Start again from a preset, with your name, timezone, and city.
-                  </p>
-                  <Button onClick={onRunSetup}>
-                    <Icon name="wand" size={14} />
-                    Run setup again
-                  </Button>
-                </section>
-              </>
-            )}
-
-            {tab === "widgets" && (
-              <>
-                <section>
-                  <ConfigForm fields={WIDGET_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
-                </section>
-                <section>
-                  <h4 className="drawer-section-title">Corner radius</h4>
-                  <ConfigForm fields={CORNER_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
-                </section>
-              </>
-            )}
-
-            {tab === "background" && (
-              <>
-                <section>
-                  <KeyField
-                    label="Unsplash access key"
-                    hint="From unsplash.com/developers. Saving reloads the page."
-                    value={apiKey("unsplash") ?? ""}
-                    onCommit={(value) => {
-                      saveApiKey("unsplash", value);
-                      location.reload();
-                    }}
-                  />
-                </section>
-                {UNSPLASH_ENABLED ? (
-                  <>
-                    <section className="flex flex-col gap-4">
-                      <ConfigForm fields={SOURCE_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
-                      {!backdrop.favoritesOnly && (
-                        <ConfigForm fields={PHOTO_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
-                      )}
-                      {!backdrop.favoritesOnly && backdrop.topic === CUSTOM_TOPIC && (
-                        <CustomQuery value={backdrop.query} onCommit={(query) => updateBackdrop({ query })} />
-                      )}
-                      <ConfigForm fields={BACKDROP_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
-                      <div className="flex flex-wrap gap-2">
-                        <Button onClick={showNextPhoto}>
-                          <Icon name="chevronRight" size={14} />
-                          Next photo
-                        </Button>
-                        <Button onClick={refreshPhotos} title="Drop the queue and fetch a fresh set">
-                          <Icon name="reset" size={14} />
-                          Fetch new photos
-                        </Button>
-                      </div>
-                    </section>
-                    <Favorites selected={backdrop.favoritesOnly} />
-                  </>
-                ) : (
-                  <p className="callout" data-tone="warning">
-                    <Icon name="alert" size={14} />
-                    Photos are off until you add an access key.
-                  </p>
-                )}
-              </>
-            )}
-
-            {tab === "spotify" && (
-              <>
-                <section className="flex flex-col gap-4">
-                  <KeyField
-                    label="Spotify client ID"
-                    hint={
-                      SPOTIFY_CAN_CONNECT ? (
-                        <>
-                          From developer.spotify.com. Add <code>{chrome.identity.getRedirectURL()}</code> as a
-                          redirect URI. Saving reloads the page.
-                        </>
-                      ) : (
-                        "From developer.spotify.com. Saving reloads the page."
-                      )
-                    }
-                    value={apiKey("spotify") ?? ""}
-                    onCommit={(value) => {
-                      saveApiKey("spotify", value);
-                      disconnectSpotify();
-                      location.reload();
-                    }}
-                  />
-                  <SpotifyConnection />
-                </section>
-                <section>
-                  <ConfigForm fields={NOW_PLAYING_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
-                </section>
-              </>
-            )}
-
-            {tab === "usage" && (
-              <section>
-                <UsagePanel />
-                <Button
-                  className="mt-4"
-                  onClick={() => {
-                    clearCache();
-                    location.reload();
-                  }}
-                >
-                  <Icon name="reset" size={14} />
-                  Refresh widget data
-                </Button>
-              </section>
-            )}
-          </div>
+      <div className="settings-nav">
+        <h2 id="settings-title">Settings</h2>
+        <div
+          role="tablist"
+          aria-label="Settings sections"
+          aria-orientation={narrow ? "horizontal" : "vertical"}
+          className="settings-tabs"
+          {...TABLIST_FOCUS}
+        >
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              id={`${id}-${t.id}`}
+              type="button"
+              role="tab"
+              aria-selected={t.id === tab}
+              onFocus={() => setTab(t.id)}
+              onClick={() => setTab(t.id)}
+              className="settings-nav-item focus-ring"
+              {...(t.id === tab && { focusgroupstart: "" })}
+            >
+              <Icon name={t.icon} size={15} />
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
-    </div>
+
+      <div className="settings-pane">
+        <header className="settings-pane-header">
+          <div className="min-w-0 flex-1">
+            <h3>{current.label}</h3>
+            <p>{current.description}</p>
+          </div>
+          <Button variant="ghost" size="sm" iconOnly autoFocus onClick={dismiss} aria-label="Close">
+            <Icon name="xmark" size={14} />
+          </Button>
+        </header>
+
+        <div key={tab} role="tabpanel" aria-labelledby={`${id}-${tab}`} className="settings-pane-body animate-fade-in">
+          {tab === "general" && (
+            <>
+              <section>
+                <h4 className="drawer-section-title">Layout</h4>
+                <div role="radiogroup" aria-label="Layout" className="layout-picker">
+                  {LAYOUTS.map((layout) => (
+                    <label key={layout.value} className="layout-option focus-ring relative cursor-pointer">
+                      <input
+                        type="radio"
+                        name={layoutName}
+                        checked={display.layout === layout.value}
+                        onChange={() => onChange({ layout: layout.value })}
+                        className="sr-only"
+                      />
+                      <span className="layout-diagram" data-layout={layout.value} aria-hidden>
+                        <span className="layout-diagram-intro">
+                          <i />
+                          <i />
+                        </span>
+                        <span className="layout-diagram-grid">
+                          <i />
+                          <i />
+                          <i />
+                        </span>
+                      </span>
+                      {layout.label}
+                    </label>
+                  ))}
+                </div>
+              </section>
+              <section>
+                <h4 className="drawer-section-title">Clock and greeting</h4>
+                <ConfigForm fields={HEADER_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
+              </section>
+              <section>
+                <h4 className="drawer-section-title">Appearance</h4>
+                <Segmented
+                  options={APPEARANCES}
+                  value={appearance}
+                  onChange={(next) => {
+                    setAppearance(next);
+                    applyAppearance(next);
+                  }}
+                  className="w-full"
+                />
+              </section>
+              <section>
+                <h4 className="drawer-section-title">Dashboard</h4>
+                <p className="mb-3 text-[13px] text-secondary text-pretty">
+                  Start again from a preset, with your name, timezone, and city.
+                </p>
+                <Button onClick={onRunSetup}>
+                  <Icon name="wand" size={14} />
+                  Run setup again
+                </Button>
+              </section>
+            </>
+          )}
+
+          {tab === "widgets" && (
+            <>
+              <section>
+                <ConfigForm fields={WIDGET_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
+              </section>
+              <section>
+                <h4 className="drawer-section-title">Corner radius</h4>
+                <ConfigForm fields={CORNER_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
+              </section>
+            </>
+          )}
+
+          {tab === "background" && (
+            <>
+              <section>
+                <KeyField
+                  label="Unsplash access key"
+                  hint="From unsplash.com/developers. Saving reloads the page."
+                  value={apiKey("unsplash") ?? ""}
+                  onCommit={(value) => {
+                    saveApiKey("unsplash", value);
+                    location.reload();
+                  }}
+                />
+              </section>
+              {UNSPLASH_ENABLED ? (
+                <>
+                  <section className="flex flex-col gap-4">
+                    <ConfigForm fields={SOURCE_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
+                    {!backdrop.favoritesOnly && (
+                      <ConfigForm fields={PHOTO_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
+                    )}
+                    {!backdrop.favoritesOnly && backdrop.topic === CUSTOM_TOPIC && (
+                      <CustomQuery value={backdrop.query} onCommit={(query) => updateBackdrop({ query })} />
+                    )}
+                    <ConfigForm fields={BACKDROP_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={showNextPhoto}>
+                        <Icon name="chevronRight" size={14} />
+                        Next photo
+                      </Button>
+                      <Button onClick={refreshPhotos} title="Drop the queue and fetch a fresh set">
+                        <Icon name="reset" size={14} />
+                        Fetch new photos
+                      </Button>
+                    </div>
+                  </section>
+                  <Favorites selected={backdrop.favoritesOnly} />
+                </>
+              ) : (
+                <p className="callout" data-tone="warning">
+                  <Icon name="alert" size={14} />
+                  Photos are off until you add an access key.
+                </p>
+              )}
+            </>
+          )}
+
+          {tab === "spotify" && (
+            <>
+              <section className="flex flex-col gap-4">
+                <KeyField
+                  label="Spotify client ID"
+                  hint={
+                    SPOTIFY_CAN_CONNECT ? (
+                      <>
+                        From developer.spotify.com. Add <code>{chrome.identity.getRedirectURL()}</code> as a
+                        redirect URI. Saving reloads the page.
+                      </>
+                    ) : (
+                      "From developer.spotify.com. Saving reloads the page."
+                    )
+                  }
+                  value={apiKey("spotify") ?? ""}
+                  onCommit={(value) => {
+                    saveApiKey("spotify", value);
+                    disconnectSpotify();
+                    location.reload();
+                  }}
+                />
+                <SpotifyConnection />
+              </section>
+              <section>
+                <ConfigForm fields={NOW_PLAYING_FIELDS} config={display} onChange={(key, value) => onChange({ [key]: value })} />
+              </section>
+            </>
+          )}
+
+          {tab === "usage" && (
+            <section>
+              <UsagePanel />
+              <Button
+                className="mt-4"
+                onClick={() => {
+                  clearCache();
+                  location.reload();
+                }}
+              >
+                <Icon name="reset" size={14} />
+                Refresh widget data
+              </Button>
+            </section>
+          )}
+        </div>
+      </div>
+    </dialog>
   );
 }
