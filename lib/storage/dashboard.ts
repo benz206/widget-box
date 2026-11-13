@@ -154,7 +154,6 @@ function parse(raw: string, known: Set<string>): DashboardState | null {
 }
 
 export function loadDashboard(known: Set<string>): DashboardState | null {
-  if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? parse(raw, known) : null;
