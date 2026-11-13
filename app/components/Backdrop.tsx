@@ -20,6 +20,7 @@ const SETTINGS_KEY = "widget-box:backdrop-settings";
 const DECK_KEY = "widget-box:backdrop-deck";
 const CHANGED_EVENT = "widget-box:backdrop-changed";
 const NEXT_EVENT = "widget-box:backdrop-next";
+const SHOW_EVENT = "widget-box:backdrop-show";
 const REFRESH_EVENT = "widget-box:backdrop-refresh";
 const DECK_EVENT = "widget-box:backdrop-deck-changed";
 const FAVORITES_KEY = "widget-box:backdrop-favorites";
@@ -58,6 +59,7 @@ export type BackdropSettings = {
   dim: number;
   blur: number;
   credit: Credit;
+  favoritesOnly: boolean;
 };
 
 const DEFAULT_SETTINGS: BackdropSettings = {
@@ -68,6 +70,7 @@ const DEFAULT_SETTINGS: BackdropSettings = {
   dim: 0,
   blur: 0,
   credit: "shown",
+  favoritesOnly: false,
 };
 
 const clamp = (value: unknown, min: number, max: number, fallback: number) =>
@@ -84,6 +87,7 @@ function readSettings(): BackdropSettings {
       dim: clamp(saved.dim, 0, 80, DEFAULT_SETTINGS.dim),
       blur: clamp(saved.blur, 0, 24, DEFAULT_SETTINGS.blur),
       credit: BACKDROP_CREDITS.some((c) => c.value === saved.credit) ? saved.credit : DEFAULT_SETTINGS.credit,
+      favoritesOnly: saved.favoritesOnly === true || saved.topic === FAVORITES_TOPIC,
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -121,17 +125,27 @@ export function refreshPhotos() {
   window.dispatchEvent(new Event(REFRESH_EVENT));
 }
 
+export function showPhoto(photo: BackdropPhoto) {
+  window.dispatchEvent(new CustomEvent(SHOW_EVENT, { detail: photo }));
+}
+
 type Deck = { source: string; current: BackdropPhoto | null; shownAt: number; queue: BackdropPhoto[] };
 
 const sourceOf = (settings: BackdropSettings) =>
-  settings.topic === CUSTOM_TOPIC ? `query:${settings.query.trim().toLowerCase()}` : settings.topic;
+  settings.favoritesOnly
+    ? FAVORITES_TOPIC
+    : settings.topic === CUSTOM_TOPIC ? `query:${settings.query.trim().toLowerCase()}` : settings.topic;
 
 function readDeck(source: string): Deck {
   try {
     const deck = JSON.parse(localStorage.getItem(DECK_KEY) ?? "null") as Deck | null;
     if (deck?.source === source && Array.isArray(deck.queue)) return deck;
   } catch {
-    localStorage.removeItem(DECK_KEY);
+    try {
+      localStorage.removeItem(DECK_KEY);
+    } catch {
+      return { source, current: null, shownAt: 0, queue: [] };
+    }
   }
   return { source, current: null, shownAt: 0, queue: [] };
 }
@@ -145,10 +159,10 @@ function writeDeck(deck: Deck) {
   window.dispatchEvent(new Event(DECK_EVENT));
 }
 
-export function useQueuedPhotos(): number {
-  const [count, setCount] = useState(() => readDeck(sourceOf(readSettings())).queue.length);
+export function useDeck(): Deck {
+  const [deck, setDeck] = useState(() => readDeck(sourceOf(readSettings())));
   useEffect(() => {
-    const sync = () => setCount(readDeck(sourceOf(readSettings())).queue.length);
+    const sync = () => setDeck(readDeck(sourceOf(readSettings())));
     window.addEventListener(DECK_EVENT, sync);
     window.addEventListener(CHANGED_EVENT, sync);
     return () => {
@@ -156,7 +170,7 @@ export function useQueuedPhotos(): number {
       window.removeEventListener(CHANGED_EVENT, sync);
     };
   }, []);
-  return count;
+  return deck;
 }
 
 function readFavorites(): BackdropPhoto[] {
@@ -208,7 +222,7 @@ let refilling: Promise<Deck> | null = null;
 
 function refill(settings: BackdropSettings): Promise<Deck> {
   const source = sourceOf(settings);
-  const favoritesOnly = settings.topic === FAVORITES_TOPIC;
+  const { favoritesOnly } = settings;
   const fetching = () =>
     favoritesOnly ? Promise.resolve(shuffled(readFavorites())) : fetchPhotos(settings.topic, settings.query);
   refilling ??= fetching()
@@ -286,12 +300,12 @@ export default function Backdrop() {
   const stageRef = useParallax(settings.motion === "parallax");
   const current = layers.at(-1)?.photo;
   const source = sourceOf(settings);
-  const { topic, query, frequency } = settings;
+  const { topic, query, frequency, favoritesOnly } = settings;
 
   useEffect(() => {
     if (!UNSPLASH_ENABLED) return;
     let cancelled = false;
-    const live = { topic, query, frequency } as BackdropSettings;
+    const live = { topic, query, frequency, favoritesOnly } as BackdropSettings;
 
     const show = async (photo: BackdropPhoto) => {
       if (layersRef.current.at(-1)?.photo.id === photo.id) return;
@@ -324,6 +338,13 @@ export default function Backdrop() {
 
     void step(false);
     const onNext = () => void step(true);
+    const onShow = (e: Event) => {
+      const photo = (e as CustomEvent<BackdropPhoto>).detail;
+      const deck = readDeck(source);
+      trackDownload(photo);
+      writeDeck({ ...deck, current: photo, shownAt: Date.now(), queue: deck.queue.filter((p) => p.id !== photo.id) });
+      void show(photo);
+    };
     const onRefresh = async () => {
       writeDeck({ ...readDeck(source), queue: [] });
       await refill(live).catch(() => undefined);
@@ -333,14 +354,16 @@ export default function Backdrop() {
       if (!document.hidden && isDue(readDeck(source), frequency)) void step(false);
     }, 60_000);
     window.addEventListener(NEXT_EVENT, onNext);
+    window.addEventListener(SHOW_EVENT, onShow);
     window.addEventListener(REFRESH_EVENT, onRefresh);
     return () => {
       cancelled = true;
       clearInterval(timer);
       window.removeEventListener(NEXT_EVENT, onNext);
+      window.removeEventListener(SHOW_EVENT, onShow);
       window.removeEventListener(REFRESH_EVENT, onRefresh);
     };
-  }, [source, topic, query, frequency]);
+  }, [source, topic, query, frequency, favoritesOnly]);
 
   const color = current?.color ?? placeholder;
 
@@ -377,23 +400,10 @@ export default function Backdrop() {
       </div>
       {current && (
         <div
-          key={current.id}
-          className="backdrop-credit corner-card material squircle animate-fade-in"
+          className="backdrop-credit corner-card material squircle"
           data-mode={settings.credit}
           title={current.alt}
         >
-          <Icon name="photo" size={14} />
-          <span className="backdrop-credit-text truncate">
-            Photo by{" "}
-            <a href={current.authorUrl} target="_blank" rel="noopener noreferrer" className="focus-ring">
-              {current.author}
-            </a>{" "}
-            on{" "}
-            <a href={UNSPLASH_HOME} target="_blank" rel="noopener noreferrer" className="focus-ring">
-              Unsplash
-            </a>
-            {current.location && <span className="backdrop-location"> · {current.location}</span>}
-          </span>
           <button
             type="button"
             title={favorites.some((p) => p.id === current.id) ? "Remove from favorites" : "Add to favorites"}
@@ -413,6 +423,17 @@ export default function Backdrop() {
           >
             <Icon name="reset" size={13} />
           </button>
+          <span key={current.id} className="backdrop-credit-text truncate animate-fade-in">
+            Photo by{" "}
+            <a href={current.authorUrl} target="_blank" rel="noopener noreferrer" className="focus-ring">
+              {current.author}
+            </a>{" "}
+            on{" "}
+            <a href={UNSPLASH_HOME} target="_blank" rel="noopener noreferrer" className="focus-ring">
+              Unsplash
+            </a>
+            {current.location && <span className="backdrop-location"> · {current.location}</span>}
+          </span>
         </div>
       )}
     </>
