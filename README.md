@@ -21,6 +21,10 @@ the bundle, so leave them out of anything you hand to other people.
 The manifest carries a fixed `key`, so the extension ID is always
 `llankfngdeihcpaihlahfkalpmpkhlml` wherever `dist` is loaded from.
 
+`bun run package` builds the Chrome Web Store upload at
+`release/widget-box.zip`: a clean build that ignores every `.env` file and
+drops the manifest `key`, so no personal keys or dev ID ship with it.
+
 While working on it, `bun run watch` rebuilds `dist` on save; press reload on
 the extension's card and open a new tab. `bun dev` serves the page at
 <http://localhost:5173> for quick layout work, though search falls back to
