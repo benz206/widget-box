@@ -1,0 +1,16 @@
+name: Feature or widget idea
+description: A new widget, or a change to an existing one
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: What should it do, and what would you use it for?
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Data source
+      description: If it needs live data, where could it come from?
