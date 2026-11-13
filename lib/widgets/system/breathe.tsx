@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { TapButton, useNow, WidgetHeader } from "@/app/components/widgets/kit";
 import type { WidgetDefinition, WidgetViewProps } from "../types";
 
@@ -46,13 +46,15 @@ function BreatheView({ size, config }: WidgetViewProps) {
       style={{ width: px, height: px, background: `color-mix(in srgb, ${ACCENT} 14%, transparent)` }}
     >
       <div
-        className="absolute inset-0 rounded-full"
-        style={{
-          background: ACCENT,
-          opacity: 0.85,
-          transform: `scale(${scale})`,
-          transition: `transform ${seconds}s ease-in-out`,
-        }}
+        className="breathe-orb absolute inset-0 rounded-full"
+        style={
+          {
+            background: ACCENT,
+            "--orb-scale": scale,
+            "--orb-opacity": scale === 1 ? 0.85 : 0.25,
+            "--orb-seconds": `${seconds}s`,
+          } as CSSProperties
+        }
       />
     </div>
   );
