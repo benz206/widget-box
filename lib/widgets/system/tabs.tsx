@@ -4,6 +4,7 @@ import type { WidgetDefinition, WidgetViewProps } from "../types";
 
 const ACCENT = "#5e5ce6";
 const STALE_MS = 7 * 86_400_000;
+const REFRESH_DELAY_MS = 250;
 
 type TabCounts = {
   tabs: number;
@@ -32,8 +33,15 @@ function useTabCounts(): TabCounts | null {
   useEffect(() => {
     if (!hasTabsApi()) return;
     let cancelled = false;
+    let pending: ReturnType<typeof setTimeout> | undefined;
     const refresh = () =>
       chrome.tabs.query({}).then((tabs) => !cancelled && setCounts(countTabs(tabs, Date.now())));
+    const schedule = () => {
+      pending ??= setTimeout(() => {
+        pending = undefined;
+        refresh();
+      }, REFRESH_DELAY_MS);
+    };
 
     const events = [
       chrome.tabs.onCreated,
@@ -42,10 +50,11 @@ function useTabCounts(): TabCounts | null {
       chrome.tabs.onUpdated,
     ] as chrome.events.Event<() => void>[];
     refresh();
-    events.forEach((e) => e.addListener(refresh));
+    events.forEach((e) => e.addListener(schedule));
     return () => {
       cancelled = true;
-      events.forEach((e) => e.removeListener(refresh));
+      clearTimeout(pending);
+      events.forEach((e) => e.removeListener(schedule));
     };
   }, []);
 
