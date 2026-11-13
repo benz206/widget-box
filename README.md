@@ -144,3 +144,20 @@ open over it as overlays rather than routes; setup opens by itself the first
 time. Extension pages allow only same-origin scripts, so the appearance
 bootstrap is `public/appearance.js` rather than an inline script.
 `public/manifest.json` and the icons are copied into `dist` as-is.
+
+## Publishing
+
+`bun run package` builds the Chrome Web Store upload at
+`release/widget-box.zip`. It is a clean build into its own folder that ignores
+every `.env` file and drops the manifest `key`, so no personal keys or dev ID
+ship with it; `dist` is left alone.
+
+- `CHROMEWEBSTORE.md` holds the listing copy, permission justifications, and
+  data-use answers to paste into the developer dashboard, plus the version
+  history.
+- `store-assets/` has the 1280×800 screenshots and the 440×280 promo tile.
+- `docs/privacy.md` is the privacy policy, served by GitHub Pages at
+  <https://benz206.github.io/widget-box/privacy>.
+
+For each release, bump `version` in `public/manifest.json`, run
+`bun run package`, upload the zip, and add a row to the version history.
