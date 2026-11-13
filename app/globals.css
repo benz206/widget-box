@@ -8,10 +8,20 @@
  * and controls as fills. Components reference the semantic name only, so an
  * appearance switch never needs a `dark:` variant.
  */
+:root {
+  color-scheme: light dark;
+}
+
+:root:has(> head > meta[name="color-scheme"][content="light"]) {
+  color-scheme: light;
+}
+
+:root:has(> head > meta[name="color-scheme"][content="dark"]) {
+  color-scheme: dark;
+}
+
 :root,
 :root[data-appearance="light"] {
-  color-scheme: light;
-
   --canvas: #eaece9;
   --canvas-tint-a: rgba(10, 132, 255, 0.1);
   --canvas-tint-b: rgba(191, 90, 242, 0.09);
@@ -44,8 +54,6 @@
 }
 
 :root[data-appearance="dark"] {
-  color-scheme: dark;
-
   --canvas: #141b1d;
   --canvas-tint-a: rgba(10, 132, 255, 0.16);
   --canvas-tint-b: rgba(191, 90, 242, 0.14);
