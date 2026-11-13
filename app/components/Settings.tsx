@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import {
   BACKDROP_CREDITS,
   BACKDROP_FREQUENCIES,
@@ -294,6 +294,16 @@ const TABS: { id: Tab; label: string; icon: IconName; description: string }[] = 
   { id: "usage", label: "Usage", icon: "chart", description: "Requests made to each service and their limits." },
 ];
 
+const TABLIST_FOCUS = { focusgroup: "tablist block inline nomemory" };
+
+const narrowQuery = "(max-width: 719px)";
+const subscribeNarrow = (notify: () => void) => {
+  const media = matchMedia(narrowQuery);
+  media.addEventListener("change", notify);
+  return () => media.removeEventListener("change", notify);
+};
+const isNarrow = () => matchMedia(narrowQuery).matches;
+
 export default function Settings({
   preferences,
   onChange,
@@ -308,6 +318,9 @@ export default function Settings({
   const [backdrop, updateBackdrop] = useBackdropSettings();
   const [appearance, setAppearance] = useState(readAppearance);
   const [tab, setTab] = useState<Tab>("general");
+  const narrow = useSyncExternalStore(subscribeNarrow, isNarrow);
+  const id = useId();
+  const layoutName = useId();
   const [closing, dismiss] = useDismiss(onClose);
   const display = { ...DISPLAY_DEFAULTS, ...preferences };
   const current = TABS.find((t) => t.id === tab)!;
@@ -325,21 +338,33 @@ export default function Settings({
       data-closing={closing || undefined}
     >
       <div role="dialog" aria-modal="true" aria-labelledby="settings-title" className="settings animate-sheet-in">
-        <nav className="settings-nav" aria-label="Settings sections">
+        <div className="settings-nav">
           <h2 id="settings-title">Settings</h2>
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              aria-current={t.id === tab ? "page" : undefined}
-              onClick={() => setTab(t.id)}
-              className="settings-nav-item focus-ring"
-            >
-              <Icon name={t.icon} size={15} />
-              {t.label}
-            </button>
-          ))}
-        </nav>
+          <div
+            role="tablist"
+            aria-label="Settings sections"
+            aria-orientation={narrow ? "horizontal" : "vertical"}
+            className="settings-tabs"
+            {...TABLIST_FOCUS}
+          >
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                id={`${id}-${t.id}`}
+                type="button"
+                role="tab"
+                aria-selected={t.id === tab}
+                onFocus={() => setTab(t.id)}
+                onClick={() => setTab(t.id)}
+                className="settings-nav-item focus-ring"
+                {...(t.id === tab && { focusgroupstart: "" })}
+              >
+                <Icon name={t.icon} size={15} />
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="settings-pane">
           <header className="settings-pane-header">
@@ -352,21 +377,21 @@ export default function Settings({
             </Button>
           </header>
 
-          <div key={tab} className="settings-pane-body animate-fade-in">
+          <div key={tab} role="tabpanel" aria-labelledby={`${id}-${tab}`} className="settings-pane-body animate-fade-in">
             {tab === "general" && (
               <>
                 <section>
                   <h4 className="drawer-section-title">Layout</h4>
                   <div role="radiogroup" aria-label="Layout" className="layout-picker">
                     {LAYOUTS.map((layout) => (
-                      <button
-                        key={layout.value}
-                        type="button"
-                        role="radio"
-                        aria-checked={display.layout === layout.value}
-                        onClick={() => onChange({ layout: layout.value })}
-                        className="layout-option focus-ring"
-                      >
+                      <label key={layout.value} className="layout-option focus-ring relative cursor-pointer">
+                        <input
+                          type="radio"
+                          name={layoutName}
+                          checked={display.layout === layout.value}
+                          onChange={() => onChange({ layout: layout.value })}
+                          className="sr-only"
+                        />
                         <span className="layout-diagram" data-layout={layout.value} aria-hidden>
                           <span className="layout-diagram-intro">
                             <i />
@@ -379,7 +404,7 @@ export default function Settings({
                           </span>
                         </span>
                         {layout.label}
-                      </button>
+                      </label>
                     ))}
                   </div>
                 </section>
