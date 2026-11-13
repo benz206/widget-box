@@ -471,6 +471,7 @@ html { container-type: scroll-state; }
   transform: translateX(-50%); border-radius: var(--radius-card); background: var(--label); color: var(--elevated-solid);
   box-shadow: var(--tile-shadow-lifted); font-size: 13px; font-weight: 500;
 }
+.toast:not([data-open]) { opacity: 0; pointer-events: none; }
 
 .tile-toolbar {
   position: absolute; top: 8px; right: 8px; z-index: 20; display: flex; gap: 2px; padding: 2px;
