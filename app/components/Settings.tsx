@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import {
   BACKDROP_CREDITS,
   BACKDROP_FREQUENCIES,
   BACKDROP_MOTIONS,
   refreshPhotos,
   showNextPhoto,
+  showPhoto,
   toggleFavorite,
   useFavorites,
   useBackdropSettings,
-  useQueuedPhotos,
+  useDeck,
 } from "./Backdrop";
 import Button from "./ui/Button";
 import ConfigForm from "./ui/ConfigForm";
@@ -26,7 +27,7 @@ import {
 } from "@/lib/api/spotify";
 import { apiKey, saveApiKey } from "@/lib/storage/keys";
 import { useSpotifyConnected } from "@/lib/widgets/system/spotify";
-import { BACKDROP_TOPICS, CUSTOM_TOPIC, FAVORITES_TOPIC, imageCacheStats, UNSPLASH_ENABLED } from "@/lib/api/unsplash";
+import { BACKDROP_TOPICS, CUSTOM_TOPIC, imageCacheStats, UNSPLASH_ENABLED } from "@/lib/api/unsplash";
 import { useUsage } from "@/lib/api/usage";
 import { DISPLAY_DEFAULTS, type DashboardPreferences } from "@/lib/storage/dashboard";
 import type { ConfigField } from "@/lib/widgets/types";
@@ -48,6 +49,10 @@ const WIDGET_FIELDS: ConfigField[] = [
 const CORNER_FIELDS: ConfigField[] = [
   { kind: "range", key: "tileRadius", label: "Widgets and cards", min: 0, max: 32, unit: "px", help: "Also the now-playing card and photo credit." },
   { kind: "range", key: "searchRadius", label: "Search bar", min: 0, max: 24, unit: "px" },
+];
+
+const SOURCE_FIELDS: ConfigField[] = [
+  { kind: "toggle", key: "favoritesOnly", label: "Only show favorites", help: "Rotate through the photos you've saved instead of new ones." },
 ];
 
 const PHOTO_FIELDS: ConfigField[] = [
@@ -175,39 +180,51 @@ function thumbnail(raw: string) {
   url.searchParams.set("h", "200");
   url.searchParams.set("fit", "crop");
   url.searchParams.set("q", "70");
+  url.searchParams.set("fm", "avif");
   return url.toString();
 }
 
 function Favorites({ selected }: { selected: boolean }) {
   const favorites = useFavorites();
+  const onScreen = useDeck().current?.id;
   return (
     <section>
-      <h4 className="drawer-section-title">Favorites</h4>
+      <h4 className="drawer-section-title">
+        Favorites
+        {favorites.length > 0 && <span className="tabular font-normal text-secondary"> {favorites.length}</span>}
+      </h4>
       {favorites.length === 0 ? (
         <p className="text-[13px] text-secondary text-pretty">
           {selected ? "No favorites yet, so there is nothing to show. " : ""}
           Press the heart by the photo credit to save the photo on screen.
         </p>
       ) : (
-        <div className="favorites-grid">
-          {favorites.map((photo) => (
-            <div
-              key={photo.id}
-              className="favorite-thumb"
-              title={`${photo.alt} by ${photo.author}`}
-              style={{ backgroundImage: `url("${thumbnail(photo.raw)}")`, backgroundColor: photo.color }}
-            >
-              <button
-                type="button"
-                aria-label={`Remove photo by ${photo.author} from favorites`}
-                onClick={() => toggleFavorite(photo)}
-                className="focus-ring"
-              >
-                <Icon name="xmark" size={11} />
-              </button>
-            </div>
-          ))}
-        </div>
+        <>
+          <p className="mb-3 text-[13px] text-secondary text-pretty">Pick one to put it on screen now.</p>
+          <ul className="favorites-grid">
+            {favorites.map((photo) => (
+              <li key={photo.id} className="favorite-thumb" style={{ backgroundColor: photo.color }}>
+                <button
+                  type="button"
+                  title={`${photo.alt} by ${photo.author}`}
+                  aria-current={photo.id === onScreen || undefined}
+                  onClick={() => showPhoto(photo)}
+                  className="favorite-show focus-ring"
+                >
+                  <img src={thumbnail(photo.raw)} alt={`Show ${photo.alt} by ${photo.author}`} loading="lazy" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Remove photo by ${photo.author} from favorites`}
+                  onClick={() => toggleFavorite(photo)}
+                  className="favorite-remove focus-ring"
+                >
+                  <Icon name="xmark" size={11} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
   );
@@ -232,7 +249,7 @@ function UsageRow({ label, value, detail, share }: { label: string; value: strin
 
 function UsagePanel() {
   const usage = useUsage();
-  const queued = useQueuedPhotos();
+  const queued = useDeck().queue.length;
   const [images, setImages] = useState<{ count: number; bytes: number } | null>(null);
 
   useEffect(() => {
@@ -294,6 +311,16 @@ const TABS: { id: Tab; label: string; icon: IconName; description: string }[] = 
   { id: "usage", label: "Usage", icon: "chart", description: "Requests made to each service and their limits." },
 ];
 
+const TABLIST_FOCUS = { focusgroup: "tablist block inline nomemory" };
+
+const narrowQuery = "(max-width: 719px)";
+const subscribeNarrow = (notify: () => void) => {
+  const media = matchMedia(narrowQuery);
+  media.addEventListener("change", notify);
+  return () => media.removeEventListener("change", notify);
+};
+const isNarrow = () => matchMedia(narrowQuery).matches;
+
 export default function Settings({
   preferences,
   onChange,
@@ -308,6 +335,9 @@ export default function Settings({
   const [backdrop, updateBackdrop] = useBackdropSettings();
   const [appearance, setAppearance] = useState(readAppearance);
   const [tab, setTab] = useState<Tab>("general");
+  const narrow = useSyncExternalStore(subscribeNarrow, isNarrow);
+  const id = useId();
+  const layoutName = useId();
   const ref = useRef<HTMLDialogElement>(null);
   const [closing, dismiss] = useDismiss(() => ref.current?.close());
   const display = { ...DISPLAY_DEFAULTS, ...preferences };
@@ -330,21 +360,33 @@ export default function Settings({
       }}
       onClose={onClose}
     >
-      <nav className="settings-nav" aria-label="Settings sections">
+      <div className="settings-nav">
         <h2 id="settings-title">Settings</h2>
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            aria-current={t.id === tab ? "page" : undefined}
-            onClick={() => setTab(t.id)}
-            className="settings-nav-item focus-ring"
-          >
-            <Icon name={t.icon} size={15} />
-            {t.label}
-          </button>
-        ))}
-      </nav>
+        <div
+          role="tablist"
+          aria-label="Settings sections"
+          aria-orientation={narrow ? "horizontal" : "vertical"}
+          className="settings-tabs"
+          {...TABLIST_FOCUS}
+        >
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              id={`${id}-${t.id}`}
+              type="button"
+              role="tab"
+              aria-selected={t.id === tab}
+              onFocus={() => setTab(t.id)}
+              onClick={() => setTab(t.id)}
+              className="settings-nav-item focus-ring"
+              {...(t.id === tab && { focusgroupstart: "" })}
+            >
+              <Icon name={t.icon} size={15} />
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="settings-pane">
         <header className="settings-pane-header">
@@ -357,21 +399,21 @@ export default function Settings({
           </Button>
         </header>
 
-        <div key={tab} className="settings-pane-body animate-fade-in">
+        <div key={tab} role="tabpanel" aria-labelledby={`${id}-${tab}`} className="settings-pane-body animate-fade-in">
           {tab === "general" && (
             <>
               <section>
                 <h4 className="drawer-section-title">Layout</h4>
                 <div role="radiogroup" aria-label="Layout" className="layout-picker">
                   {LAYOUTS.map((layout) => (
-                    <button
-                      key={layout.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={display.layout === layout.value}
-                      onClick={() => onChange({ layout: layout.value })}
-                      className="layout-option focus-ring"
-                    >
+                    <label key={layout.value} className="layout-option focus-ring relative cursor-pointer">
+                      <input
+                        type="radio"
+                        name={layoutName}
+                        checked={display.layout === layout.value}
+                        onChange={() => onChange({ layout: layout.value })}
+                        className="sr-only"
+                      />
                       <span className="layout-diagram" data-layout={layout.value} aria-hidden>
                         <span className="layout-diagram-intro">
                           <i />
@@ -384,7 +426,7 @@ export default function Settings({
                         </span>
                       </span>
                       {layout.label}
-                    </button>
+                    </label>
                   ))}
                 </div>
               </section>
@@ -445,8 +487,11 @@ export default function Settings({
               {UNSPLASH_ENABLED ? (
                 <>
                   <section className="flex flex-col gap-4">
-                    <ConfigForm fields={PHOTO_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
-                    {backdrop.topic === CUSTOM_TOPIC && (
+                    <ConfigForm fields={SOURCE_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
+                    {!backdrop.favoritesOnly && (
+                      <ConfigForm fields={PHOTO_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
+                    )}
+                    {!backdrop.favoritesOnly && backdrop.topic === CUSTOM_TOPIC && (
                       <CustomQuery value={backdrop.query} onCommit={(query) => updateBackdrop({ query })} />
                     )}
                     <ConfigForm fields={BACKDROP_FIELDS} config={backdrop} onChange={(key, value) => updateBackdrop({ [key]: value })} />
@@ -461,7 +506,7 @@ export default function Settings({
                       </Button>
                     </div>
                   </section>
-                  <Favorites selected={backdrop.topic === FAVORITES_TOPIC} />
+                  <Favorites selected={backdrop.favoritesOnly} />
                 </>
               ) : (
                 <p className="callout" data-tone="warning">

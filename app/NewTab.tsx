@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragMoveEvent,
   DragStartEvent,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
+  type Announcements,
+  type KeyboardCoordinateGetter,
 } from "@dnd-kit/core";
 import Library from "@/app/components/Library";
 import NowPlaying from "@/app/components/NowPlaying";
@@ -31,6 +34,18 @@ import { WIDGET_SIZES, type WidgetPosition, type WidgetSize } from "@/lib/widget
 
 /** Below this width the grid reflows and coordinates stop meaning anything. */
 const DRAG_BREAKPOINT = 720;
+
+const ARROW_STEPS: Record<string, [number, number]> = {
+  ArrowRight: [1, 0],
+  ArrowLeft: [-1, 0],
+  ArrowDown: [0, 1],
+  ArrowUp: [0, -1],
+};
+
+const SCREEN_READER_INSTRUCTIONS = {
+  draggable:
+    "To move this tile, press Space or Enter to pick it up. Use the arrow keys to move it one cell at a time, then press Space or Enter to drop it, or Escape to cancel.",
+};
 
 type Metrics = { cell: number; gap: number; cols: number };
 
@@ -208,6 +223,7 @@ export default function NewTab() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [preview, setPreview] = useState<WidgetPosition | null>(null);
   const [previewBlocked, setPreviewBlocked] = useState(false);
+  const drop = useRef<{ position: WidgetPosition; blocked: boolean } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [gridEl, setGridEl] = useState<HTMLDivElement | null>(null);
   const metrics = useGridMetrics(gridEl);
@@ -217,9 +233,53 @@ export default function NewTab() {
   const rows = state?.preferences.gridRows ?? DEFAULT_ROWS;
   const instances = useMemo(() => state?.instances ?? [], [state]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  const coordinateGetter = useCallback<KeyboardCoordinateGetter>(
+    (event, { context, currentCoordinates }) => {
+      const arrow = ARROW_STEPS[event.code];
+      const rect = context.collisionRect;
+      if (!arrow || !rect || !gridEl) return;
+      event.preventDefault();
+      const step = metrics.cell + metrics.gap;
+      const grid = gridEl.getBoundingClientRect();
+      return {
+        x: Math.max(grid.left, Math.min(currentCoordinates.x + arrow[0] * step, grid.right - rect.width)),
+        y: Math.max(grid.top, Math.min(currentCoordinates.y + arrow[1] * step, grid.bottom - rect.height)),
+      };
+    },
+    [gridEl, metrics]
   );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter, scrollBehavior: "auto" })
+  );
+
+  const announcements = useMemo<Announcements>(() => {
+    const find = (id: string | number) => instances.find((i) => i.instanceId === id);
+    const nameOf = (id: string | number) => {
+      const instance = find(id);
+      return (instance && getWidgetById(instance.widgetId)?.meta.name) ?? "Widget";
+    };
+    const place = (p?: WidgetPosition) => (p ? `column ${p.x + 1}, row ${p.y + 1}` : "its spot");
+    return {
+      onDragStart: ({ active }) =>
+        `Picked up ${nameOf(active.id)}. Use arrow keys to move, Space to drop, Escape to cancel.`,
+      onDragMove: ({ active }) =>
+        drop.current
+          ? `${nameOf(active.id)} is over ${place(drop.current.position)}${drop.current.blocked ? ", which is taken" : ""}.`
+          : undefined,
+      onDragOver: () => undefined,
+      onDragEnd: ({ active }) => {
+        const from = find(active.id)?.position;
+        const to = drop.current;
+        return to && !to.blocked && !(from && to.position.x === from.x && to.position.y === from.y)
+          ? `${nameOf(active.id)} moved to ${place(to.position)}.`
+          : `${nameOf(active.id)} stayed at ${place(from)}.`;
+      },
+      onDragCancel: ({ active }) =>
+        `Move cancelled. ${nameOf(active.id)} is back at ${place(find(active.id)?.position)}.`,
+    };
+  }, [instances]);
 
   const announce = useCallback((message: string) => {
     setNotice(message);
@@ -233,6 +293,7 @@ export default function NewTab() {
       setActiveId(id);
       const instance = instances.find((i) => i.instanceId === id);
       if (instance) setPreview(instance.position);
+      drop.current = instance ? { position: instance.position, blocked: false } : null;
     },
     [instances]
   );
@@ -252,27 +313,31 @@ export default function NewTab() {
         h,
       };
 
-      setPreviewBlocked(
-        instances.some(
-          (other) =>
-            other.instanceId !== id && rectsOverlap(other.position, candidate)
-        )
+      const blocked = instances.some(
+        (other) =>
+          other.instanceId !== id && rectsOverlap(other.position, candidate)
       );
+      drop.current = { position: candidate, blocked };
+      setPreviewBlocked(blocked);
       setPreview(candidate);
     },
     [instances, metrics, cols, rows]
   );
+
+  const onDragCancel = useCallback(() => {
+    setActiveId(null);
+    setPreview(null);
+    setPreviewBlocked(false);
+  }, []);
 
   const onDragEnd = useCallback(
     () => {
       if (activeId && preview && !previewBlocked) {
         actions.updateInstance(activeId, { position: preview });
       }
-      setActiveId(null);
-      setPreview(null);
-      setPreviewBlocked(false);
+      onDragCancel();
     },
-    [activeId, preview, previewBlocked, actions]
+    [activeId, preview, previewBlocked, actions, onDragCancel]
   );
 
   // ── Instance actions ────────────────────────────────────────────────────
@@ -371,6 +436,8 @@ export default function NewTab() {
             onDragStart={onDragStart}
             onDragMove={onDragMove}
             onDragEnd={onDragEnd}
+            onDragCancel={onDragCancel}
+            accessibility={{ announcements, screenReaderInstructions: SCREEN_READER_INSTRUCTIONS }}
           >
             <div
               ref={setGridEl}
@@ -453,12 +520,10 @@ export default function NewTab() {
         </div>
       )}
 
-      {notice && (
-        <div role="status" className="toast" style={{ bottom: editMode ? 88 : 24 }}>
-          <Icon name="alert" size={15} />
-          {notice}
-        </div>
-      )}
+      <div role="status" className="toast" data-open={notice ? true : undefined} style={{ bottom: editMode ? 88 : 24 }}>
+        {notice && <Icon name="alert" size={15} />}
+        {notice}
+      </div>
 
       {display.nowPlaying === "corner" && <NowPlaying />}
 

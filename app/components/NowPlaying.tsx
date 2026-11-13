@@ -19,13 +19,17 @@ function Card({ track }: { track: Track }) {
         </span>
       </div>
       {track.playing ? (
-        <span className="now-playing-eq" aria-label="Playing">
+        <span className="now-playing-eq">
           <i />
           <i />
           <i />
+          <span className="sr-only">Playing</span>
         </span>
       ) : (
-        <Icon name="pause" size={14} />
+        <>
+          <Icon name="pause" size={14} />
+          <span className="sr-only">Paused</span>
+        </>
       )}
       <span className="now-playing-bar" aria-hidden style={{ width: `${(progress / track.durationMs) * 100}%` }} />
     </div>

@@ -154,7 +154,6 @@ function parse(raw: string, known: Set<string>): DashboardState | null {
 }
 
 export function loadDashboard(known: Set<string>): DashboardState | null {
-  if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? parse(raw, known) : null;
@@ -165,7 +164,11 @@ export function loadDashboard(known: Set<string>): DashboardState | null {
 
 export function saveDashboard(state: DashboardState): void {
   const next = { ...state, updatedAt: new Date().toISOString() };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    return;
+  }
   // The native `storage` event does not fire in the tab that wrote it.
   window.dispatchEvent(new CustomEvent("widget-box:dashboard-changed"));
 }
@@ -270,7 +273,11 @@ export function useDashboard(known: Set<string>): {
         saveDashboard(next);
       },
       reset() {
-        localStorage.removeItem(STORAGE_KEY);
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch {
+          return;
+        }
         window.dispatchEvent(new CustomEvent("widget-box:dashboard-changed"));
       },
     }),

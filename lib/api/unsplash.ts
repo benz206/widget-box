@@ -27,7 +27,6 @@ export const BACKDROP_TOPICS = [
   { value: "upmleWZC83Y", label: "Patterns" },
   { value: "If65AuNOOxQ", label: "Illustrated wallpapers" },
   { value: "M4lsf7LQDRA", label: "Illustrated nature" },
-  { value: FAVORITES_TOPIC, label: "Your favorites" },
   { value: CUSTOM_TOPIC, label: "Custom search…" },
 ];
 
@@ -87,7 +86,7 @@ export function photoSrc(photo: BackdropPhoto): string {
   const url = new URL(photo.raw);
   url.searchParams.set("w", String(width));
   url.searchParams.set("q", "80");
-  url.searchParams.set("fm", "jpg");
+  url.searchParams.set("fm", "avif");
   url.searchParams.set("fit", "max");
   return url.toString();
 }
@@ -134,7 +133,13 @@ export async function imageCacheStats(): Promise<{ count: number; bytes: number 
   try {
     const cache = await caches.open(IMAGE_CACHE);
     const responses = await Promise.all((await cache.keys()).map((request) => cache.match(request)));
-    const sizes = await Promise.all(responses.map(async (res) => (res ? (await res.blob()).size : 0)));
+    const sizes = await Promise.all(
+      responses.map(async (res) => {
+        if (!res) return 0;
+        const length = Number(res.headers.get("Content-Length"));
+        return length > 0 ? length : (await res.blob()).size;
+      })
+    );
     return { count: sizes.length, bytes: sizes.reduce((sum, size) => sum + size, 0) };
   } catch {
     return { count: 0, bytes: 0 };

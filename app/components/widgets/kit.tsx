@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Icon, { type IconName } from "@/app/components/ui/Icon";
 import { peek, write } from "@/lib/api/cache";
 import type { WeatherKind } from "@/lib/weather-codes";
@@ -6,16 +6,23 @@ import type { WeatherKind } from "@/lib/weather-codes";
 // ── Hooks ──────────────────────────────────────────────────────────────────
 
 /** A ticking clock. */
-export function useNow(intervalMs = 1000): Date | null {
+export function useNow(intervalMs: number | null = 1000): Date | null {
   const [now, setNow] = useState<Date | null>(() => new Date());
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (intervalMs === null) return;
     let id: ReturnType<typeof setTimeout>;
     const tick = () => {
+      clearTimeout(id);
+      if (document.hidden) return;
       setNow(new Date());
       id = setTimeout(tick, intervalMs - (Date.now() % intervalMs));
     };
     tick();
-    return () => clearTimeout(id);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearTimeout(id);
+      document.removeEventListener("visibilitychange", tick);
+    };
   }, [intervalMs]);
   return now;
 }
