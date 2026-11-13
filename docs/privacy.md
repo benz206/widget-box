@@ -39,4 +39,4 @@ Changes to this policy will be posted at this URL with a new "Last updated" date
 
 ## Contact
 
-ben.zhou.2006@gmail.com
+Questions about privacy: <https://github.com/benz206/widget-box/issues>
