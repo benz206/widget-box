@@ -4,6 +4,49 @@ A Chrome new tab page: an Unsplash photo, a big clock, a search box, and a grid
 of small, glanceable widgets — the weather, markets, a focus timer, a note —
 that you rearrange yourself.
 
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/ppokcfoigaijomaclaemoomjoeleaoak?label=Chrome%20Web%20Store)](https://chromewebstore.google.com/detail/widget-box/ppokcfoigaijomaclaemoomjoeleaoak)
+
+![Widget Box in the centered layout, with weather, markets, calendar, focus timer, sky, and system widgets over a mountain photo](store-assets/1-dashboard.png)
+
+<p>
+  <img src="store-assets/2-split-dark.png" width="49%" alt="Split layout in dark mode with a fuller grid of widgets">
+  <img src="store-assets/3-library.png" width="49%" alt="The widget library, with filters by category and a preview of each widget">
+</p>
+
+## Features
+
+- **27 widgets.** Weather, air quality, daylight, and moon phase for any city;
+  market quotes and currency conversion; a focus timer, countdowns, world
+  clocks, and a calendar; notes and a daily note; battery, CPU, memory,
+  network, and open tabs for this computer; "on this day", a breathing guide,
+  ambient sounds, a pet, and Spotify "now playing".
+- **Arrange it yourself.** Drag widgets anywhere on the grid, in small, medium,
+  or large, and add as many copies as you like — each keeps its own settings.
+- **Backgrounds from Unsplash.** A curated topic, a mix, your own search, or
+  only the photos you've favorited, changing every 15 minutes, hour, or day.
+- **Three layouts, light and dark.** Centered, left-aligned, or split, following
+  your system appearance unless you pick one.
+- **Stays on your device.** No account, no analytics, no server. Layout, notes,
+  and keys live in this browser; see the [privacy policy](docs/privacy.md).
+
+## Install
+
+Get it from the
+[Chrome Web Store](https://chromewebstore.google.com/detail/widget-box/ppokcfoigaijomaclaemoomjoeleaoak)
+and open a new tab. A short setup picks a starter layout.
+
+Two widgets need a key of your own:
+
+- **Photos:** create an app at <https://unsplash.com/developers> and paste its
+  access key into **Settings → Background**. Without one the page shows a
+  plain gradient.
+- **Spotify:** create an app at <https://developer.spotify.com/dashboard>, add
+  the redirect URI shown in **Settings → Spotify**
+  (`https://ppokcfoigaijomaclaemoomjoeleaoak.chromiumapp.org/` for the store
+  version), and paste its client ID there.
+
+## Development
+
 ```bash
 bun install
 bun run build
@@ -110,12 +153,14 @@ whenever a photo is shown.
 
 The Spotify widget and the bottom-right "now playing" line read
 `/me/player/currently-playing` every 5 seconds while the tab is visible. Each
-user creates an app at <https://developer.spotify.com/dashboard>, adds
-`https://llankfngdeihcpaihlahfkalpmpkhlml.chromiumapp.org/` as a redirect URI,
-and pastes its client ID into Settings. Sign-in uses PKCE through
-`chrome.identity`, so no client secret is involved and it only works inside the
-extension, not under `bun dev`. Apps in Spotify's development mode only accept
-accounts added to the app's user list.
+user creates an app at <https://developer.spotify.com/dashboard>, adds the
+extension's `chromiumapp.org` redirect URI —
+`https://ppokcfoigaijomaclaemoomjoeleaoak.chromiumapp.org/` for the store
+version, `https://llankfngdeihcpaihlahfkalpmpkhlml.chromiumapp.org/` for an
+unpacked build — and pastes its client ID into Settings. Sign-in uses PKCE
+through `chrome.identity`, so no client secret is involved and it only works
+inside the extension, not under `bun dev`. Apps in Spotify's development mode
+only accept accounts added to the app's user list.
 
 ## Appearance
 
@@ -147,6 +192,10 @@ bootstrap is `public/appearance.js` rather than an inline script.
 
 ## Publishing
 
+Widget Box is live on the
+[Chrome Web Store](https://chromewebstore.google.com/detail/widget-box/ppokcfoigaijomaclaemoomjoeleaoak)
+as `ppokcfoigaijomaclaemoomjoeleaoak`.
+
 `bun run package` builds the Chrome Web Store upload at
 `release/widget-box.zip`. It is a clean build into its own folder that ignores
 every `.env` file and drops the manifest `key`, so no personal keys or dev ID
@@ -160,4 +209,6 @@ ship with it; `dist` is left alone.
   <https://benz206.github.io/widget-box/privacy>.
 
 For each release, bump `version` in `public/manifest.json`, run
-`bun run package`, upload the zip, and add a row to the version history.
+`bun run package`, upload the zip, and add a row to the version history, then
+submit it for review in the developer dashboard. Installed copies update
+themselves once it is approved.
