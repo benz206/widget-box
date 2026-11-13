@@ -34,7 +34,7 @@ function locate(steps: Step[], elapsedMs: number) {
 function BreatheView({ size, config }: WidgetViewProps) {
   const pattern = PATTERNS[String(config.pattern)] ?? PATTERNS.box;
   const [startedAt, setStartedAt] = useState<number | null>(null);
-  const now = useNow(250);
+  const now = useNow(startedAt === null ? null : 250);
 
   const at = startedAt !== null && now ? locate(pattern.steps, Math.max(0, now.getTime() - startedAt)) : null;
   const scale = at?.step.scale ?? SMALL;

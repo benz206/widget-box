@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { buttonClass } from "@/app/components/ui/Button";
 import {
   formatClock,
   useNow,
-  useRemote,
   WidgetHeader,
   WidgetMessage,
   WidgetSkeleton,
@@ -28,9 +27,78 @@ export function useSpotifyConnected(): boolean {
   return connected;
 }
 
+type NowPlayingState = { data: NowPlaying | null; error: string | null; loading: boolean };
+
+const IDLE: NowPlayingState = { data: null, error: null, loading: true };
+const listeners = new Set<() => void>();
+let state = IDLE;
+let pollId: ReturnType<typeof setInterval> | undefined;
+let controller: AbortController | null = null;
+let offConnection: (() => void) | undefined;
+
+function publish(next: NowPlayingState) {
+  state = next;
+  listeners.forEach((listener) => listener());
+}
+
+async function load() {
+  if (document.hidden) return;
+  controller?.abort();
+  const own = (controller = new AbortController());
+  try {
+    publish({ data: await fetchNowPlaying(own.signal), error: null, loading: false });
+  } catch (error) {
+    if (own.signal.aborted) return;
+    publish({ data: state.data, error: (error as Error).message, loading: false });
+  }
+}
+
+function onVisible() {
+  if (!document.hidden && pollId !== undefined) load();
+}
+
+function startPolling() {
+  if (!isConnected()) return;
+  publish(IDLE);
+  load();
+  pollId = setInterval(load, POLL_MS);
+}
+
+function stopPolling() {
+  controller?.abort();
+  clearInterval(pollId);
+  pollId = undefined;
+  publish(IDLE);
+}
+
+function restartPolling() {
+  stopPolling();
+  startPolling();
+}
+
+function subscribe(listener: () => void) {
+  if (listeners.size === 0) {
+    startPolling();
+    document.addEventListener("visibilitychange", onVisible);
+    offConnection = onConnectionChange(restartPolling);
+  }
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size > 0) return;
+    offConnection?.();
+    document.removeEventListener("visibilitychange", onVisible);
+    stopPolling();
+  };
+}
+
+function getSnapshot() {
+  return state;
+}
+
 export function useNowPlaying() {
   const connected = useSpotifyConnected();
-  const remote = useRemote<NowPlaying | null>(connected ? "spotify" : null, fetchNowPlaying, POLL_MS, false);
+  const remote = useSyncExternalStore(subscribe, getSnapshot);
   return { connected, ...remote };
 }
 
