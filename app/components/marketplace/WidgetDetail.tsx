@@ -37,14 +37,12 @@ export default function WidgetDetail({
     () => ({ ...(definition?.defaultConfig ?? {}) })
   );
   const [added, setAdded] = useState(false);
-  const [closing, dismiss] = useDismiss(onClose);
-  const backdropRef = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDialogElement>(null);
+  const [closing, dismiss] = useDismiss(() => ref.current?.close());
 
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => e.key === "Escape" && dismiss();
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [dismiss]);
+    ref.current?.showModal();
+  }, []);
 
   const cols = state?.preferences.gridCols ?? DEFAULT_COLS;
   const rows = state?.preferences.gridRows ?? DEFAULT_ROWS;
@@ -70,113 +68,112 @@ export default function WidgetDetail({
     state?.instances.filter((i) => i.widgetId === widgetId).length ?? 0;
 
   return (
-    <div
-      ref={backdropRef}
-      onPointerDown={(e) => e.target === backdropRef.current && dismiss()}
-      className="drawer-scrim animate-fade-in"
+    <dialog
+      ref={ref}
+      closedby="any"
+      aria-labelledby="widget-detail-title"
+      className="drawer card"
+      style={{ ["--tile-accent" as string]: meta.accent }}
       data-closing={closing || undefined}
+      onCancel={(e) => {
+        e.preventDefault();
+        dismiss();
+      }}
+      onClose={onClose}
     >
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="widget-detail-title"
-        className="drawer card"
-        style={{ ["--tile-accent" as string]: meta.accent }}
-      >
-        <header className="drawer-header">
-          <span className="icon-tile">
-            <Icon name={meta.icon} size={16} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 id="widget-detail-title" className="truncate">{meta.name}</h2>
-            <p className="truncate">{meta.tagline}</p>
-          </div>
-          <Button variant="ghost" size="sm" iconOnly autoFocus onClick={dismiss} aria-label="Close">
-            <Icon name="xmark" size={14} />
-          </Button>
-        </header>
-
-        <div className="drawer-body">
-          <section>
-            <div className="drawer-preview preview-surface">
-              <TilePreview widgetId={widgetId} size={size} cell={124} config={config} />
-            </div>
-            {meta.sizes.length > 1 && (
-              <Segmented
-                options={meta.sizes.map((s) => ({ value: s, label: SIZE_LABELS[s] }))}
-                value={size}
-                onChange={setSize}
-                className="mt-3 w-full"
-              />
-            )}
-          </section>
-
-          <p className="text-[13px] leading-relaxed text-secondary text-pretty">{meta.description}</p>
-
-          <section>
-            <h3 className="drawer-section-title">Details</h3>
-            <dl className="detail-list">
-              <div>
-                <dt>Category</dt>
-                <dd>{CATEGORY_LABELS[meta.category]}</dd>
-              </div>
-              <div>
-                <dt>Sizes</dt>
-                <dd>
-                  <SizeChips sizes={meta.sizes} />
-                </dd>
-              </div>
-              <div>
-                <dt>On your dashboard</dt>
-                <dd>
-                  {installed > 0 ? (
-                    <Badge tone="positive" dot>
-                      {installed} added
-                    </Badge>
-                  ) : (
-                    <Badge>Not added</Badge>
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt>Tags</dt>
-                <dd className="flex flex-wrap justify-end gap-1">
-                  {meta.tags.map((tag) => (
-                    <Badge key={tag}>{tag}</Badge>
-                  ))}
-                </dd>
-              </div>
-            </dl>
-          </section>
-
-          {(definition.configFields?.length ?? 0) > 0 && (
-            <section>
-              <h3 className="drawer-section-title">Settings</h3>
-              <ConfigForm
-                fields={definition.configFields ?? []}
-                config={config}
-                onChange={(key, value) =>
-                  setConfig((prev) => ({ ...prev, [key]: value }))
-                }
-              />
-            </section>
-          )}
+      <header className="drawer-header">
+        <span className="icon-tile">
+          <Icon name={meta.icon} size={16} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 id="widget-detail-title" className="truncate">{meta.name}</h2>
+          <p className="truncate">{meta.tagline}</p>
         </div>
+        <Button variant="ghost" size="sm" iconOnly autoFocus onClick={dismiss} aria-label="Close">
+          <Icon name="xmark" size={14} />
+        </Button>
+      </header>
 
-        <footer className="drawer-footer">
-          {!spot && (
-            <p className="callout mr-auto" data-tone="warning">
-              <Icon name="alert" size={14} />
-              No room at this size. Try a smaller one.
-            </p>
+      <div className="drawer-body">
+        <section>
+          <div className="drawer-preview preview-surface">
+            <TilePreview widgetId={widgetId} size={size} cell={124} config={config} />
+          </div>
+          {meta.sizes.length > 1 && (
+            <Segmented
+              options={meta.sizes.map((s) => ({ value: s, label: SIZE_LABELS[s] }))}
+              value={size}
+              onChange={setSize}
+              className="mt-3 w-full"
+            />
           )}
-          <Button onClick={dismiss}>Cancel</Button>
-          <Button variant="primary" onClick={add} disabled={!spot || added}>
-            <Icon name={added ? "check" : "plus"} size={14} />
-            {added ? "Added" : installed > 0 ? "Add another" : "Add to dashboard"}
-          </Button>
-        </footer>
-      </aside>
-    </div>
+        </section>
+
+        <p className="text-[13px] leading-relaxed text-secondary text-pretty">{meta.description}</p>
+
+        <section>
+          <h3 className="drawer-section-title">Details</h3>
+          <dl className="detail-list">
+            <div>
+              <dt>Category</dt>
+              <dd>{CATEGORY_LABELS[meta.category]}</dd>
+            </div>
+            <div>
+              <dt>Sizes</dt>
+              <dd>
+                <SizeChips sizes={meta.sizes} />
+              </dd>
+            </div>
+            <div>
+              <dt>On your dashboard</dt>
+              <dd>
+                {installed > 0 ? (
+                  <Badge tone="positive" dot>
+                    {installed} added
+                  </Badge>
+                ) : (
+                  <Badge>Not added</Badge>
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>Tags</dt>
+              <dd className="flex flex-wrap justify-end gap-1">
+                {meta.tags.map((tag) => (
+                  <Badge key={tag}>{tag}</Badge>
+                ))}
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        {(definition.configFields?.length ?? 0) > 0 && (
+          <section>
+            <h3 className="drawer-section-title">Settings</h3>
+            <ConfigForm
+              fields={definition.configFields ?? []}
+              config={config}
+              onChange={(key, value) =>
+                setConfig((prev) => ({ ...prev, [key]: value }))
+              }
+            />
+          </section>
+        )}
+      </div>
+
+      <footer className="drawer-footer">
+        {!spot && (
+          <p className="callout mr-auto" data-tone="warning">
+            <Icon name="alert" size={14} />
+            No room at this size. Try a smaller one.
+          </p>
+        )}
+        <Button onClick={dismiss}>Cancel</Button>
+        <Button variant="primary" onClick={add} disabled={!spot || added}>
+          <Icon name={added ? "check" : "plus"} size={14} />
+          {added ? "Added" : installed > 0 ? "Add another" : "Add to dashboard"}
+        </Button>
+      </footer>
+    </dialog>
   );
 }

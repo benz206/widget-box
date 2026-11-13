@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "@/app/components/ui/Button";
 import Icon from "@/app/components/ui/Icon";
 import useDismiss from "@/app/components/ui/useDismiss";
@@ -41,7 +41,8 @@ function initialConfig(widgetId: string, prefs: Prefs): Record<string, unknown> 
 
 export default function Setup({ onClose }: { onClose: () => void }) {
   const { state, actions } = useDashboard(SYSTEM_WIDGET_IDS);
-  const [closing, dismiss] = useDismiss(onClose);
+  const ref = useRef<HTMLDialogElement>(null);
+  const [closing, dismiss] = useDismiss(() => ref.current?.close());
 
   const [step, setStep] = useState(0);
   const [presetId, setPresetId] = useState<PresetId | null>(null);
@@ -75,6 +76,10 @@ export default function Setup({ onClose }: { onClose: () => void }) {
     }
     return { placements, dropped };
   }, [selected]);
+
+  useEffect(() => {
+    ref.current?.showModal();
+  }, []);
 
   const canContinue = step !== 1 || selected.length > 0;
 
@@ -110,7 +115,17 @@ export default function Setup({ onClose }: { onClose: () => void }) {
   const last = step === STEPS.length - 1;
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Set up Widget Box" className="onboarding animate-fade-in" data-closing={closing || undefined}>
+    <dialog
+      ref={ref}
+      aria-label="Set up Widget Box"
+      className="onboarding animate-fade-in"
+      data-closing={closing || undefined}
+      onCancel={(e) => {
+        e.preventDefault();
+        exit();
+      }}
+      onClose={onClose}
+    >
       <header className="onboarding-bar material">
         <span className="sidebar-brand">
           <span className="brand-mark"><Icon name="grid" size={14} strokeWidth={2} /></span>
@@ -217,6 +232,6 @@ export default function Setup({ onClose }: { onClose: () => void }) {
           </section>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

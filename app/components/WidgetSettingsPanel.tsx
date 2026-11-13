@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Button from "./ui/Button";
 import ConfigForm from "./ui/ConfigForm";
@@ -34,10 +34,14 @@ export default function WidgetSettingsPanel({
   onDuplicate,
   onClose,
 }: Props) {
-  const panelRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDialogElement>(null);
   const [placement, setPlacement] = useState({ left: anchor.x, top: anchor.y });
   const definition = getWidgetById(widgetId);
   const fields = getConfigFields(widgetId);
+
+  useLayoutEffect(() => {
+    panelRef.current?.showPopover();
+  }, []);
 
   // Keep the popover fully on screen, flipping above the anchor if needed.
   useLayoutEffect(() => {
@@ -54,30 +58,17 @@ export default function WidgetSettingsPanel({
     });
   }, [anchor.x, anchor.y]);
 
-  useEffect(() => {
-    const onPointerDown = (e: PointerEvent) => {
-      if (!panelRef.current?.contains(e.target as Node)) onClose();
-    };
-    const onKeyDown = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [onClose]);
-
   if (!definition) return null;
   const sizes = definition.meta.sizes;
 
   // Portalled to the body: while the dashboard is in edit mode the tile's
   // contents are inert, and a popover nested inside would inherit that.
   return createPortal(
-    <div
+    <dialog
       ref={panelRef}
-      role="dialog"
+      popover="auto"
       aria-label={`${definition.meta.name} settings`}
-      className="animate-sheet-in card fixed z-[200] flex flex-col"
+      className="animate-sheet-in card fixed open:flex flex-col"
       style={{
         left: placement.left,
         top: placement.top,
@@ -86,6 +77,7 @@ export default function WidgetSettingsPanel({
         boxShadow: "var(--tile-shadow-lifted)",
       }}
       onPointerDown={(e) => e.stopPropagation()}
+      onToggle={(e) => e.newState === "closed" && onClose()}
     >
       <header className="flex items-center gap-3 border-b border-separator px-4 py-3">
         <span className="icon-tile" style={{ ["--tile-accent" as string]: definition.meta.accent }}>
@@ -147,7 +139,7 @@ export default function WidgetSettingsPanel({
           Duplicate
         </Button>
       </footer>
-    </div>,
+    </dialog>,
     document.body
   );
 }

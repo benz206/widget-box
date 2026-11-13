@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "@/app/components/ui/Button";
 import FilterPills from "@/app/components/ui/FilterPills";
 import Icon from "@/app/components/ui/Icon";
@@ -28,7 +28,8 @@ export default function Library({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [selected, setSelected] = useState<string | null>(null);
-  const [closing, dismiss] = useDismiss(onClose);
+  const ref = useRef<HTMLDialogElement>(null);
+  const [closing, dismiss] = useDismiss(() => ref.current?.close());
 
   const all = listWidgets();
   const categoryOptions = [
@@ -54,11 +55,8 @@ export default function Library({ onClose }: { onClose: () => void }) {
   }, [category, query]);
 
   useEffect(() => {
-    if (selected) return;
-    const onKeyDown = (e: KeyboardEvent) => e.key === "Escape" && dismiss();
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [selected, dismiss]);
+    ref.current?.showModal();
+  }, []);
 
   const installed = useMemo(() => {
     const counts = new Map<string, number>();
@@ -69,12 +67,19 @@ export default function Library({ onClose }: { onClose: () => void }) {
   }, [state]);
 
   return (
-    <div
-      className="sheet-scrim"
-      data-closing={closing || undefined}
-      onPointerDown={(e) => e.target === e.currentTarget && dismiss()}
-    >
-      <div role="dialog" aria-modal="true" aria-label="Widget library" className="sheet card animate-sheet-in">
+    <>
+      <dialog
+        ref={ref}
+        closedby="any"
+        aria-label="Widget library"
+        className="sheet card animate-sheet-in"
+        data-closing={closing || undefined}
+        onCancel={(e) => {
+          e.preventDefault();
+          dismiss();
+        }}
+        onClose={onClose}
+      >
         <PageHeader
           title="Widget library"
           description={`${all.length} widgets. Add as many copies as you like; each one keeps its own settings.`}
@@ -140,16 +145,16 @@ export default function Library({ onClose }: { onClose: () => void }) {
         ) : (
           <WidgetTable definitions={results} installed={installed} onSelect={setSelected} />
         )}
+      </dialog>
 
-        {selected && (
-          <WidgetDetail
-            widgetId={selected}
-            state={state}
-            actions={actions}
-            onClose={() => setSelected(null)}
-          />
-        )}
-      </div>
-    </div>
+      {selected && (
+        <WidgetDetail
+          widgetId={selected}
+          state={state}
+          actions={actions}
+          onClose={() => setSelected(null)}
+        />
+      )}
+    </>
   );
 }
